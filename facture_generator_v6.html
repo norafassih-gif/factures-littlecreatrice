@@ -70,12 +70,14 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--texte)
 
 /* interventions */
 .inter-item{background:var(--bleu-p);border:1px solid var(--bleu-c);border-radius:8px;padding:10px 11px;margin-bottom:8px}
-.ii-top{display:flex;gap:7px;margin-bottom:7px}
-.ii-top input{font-size:11px;font-family:'Montserrat',sans-serif;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--texte);background:#fff;outline:none;transition:.15s}
+.ii-top{display:flex;align-items:center;gap:6px;margin-bottom:7px;min-width:0}
+.ii-top input{font-size:11px;font-family:'Montserrat',sans-serif;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--texte);background:#fff;outline:none;transition:.15s;min-width:0}
 .ii-top input:focus{border-color:var(--bleu)}
 .ii-top input.di{width:120px;flex:none}
 .ii-top input.dsc{flex:1}
-.delbtn{background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:3px;border-radius:4px;transition:.15s;line-height:1}
+.delbtn{background:none;border:none;color:#999;cursor:pointer;font-size:15px;padding:4px 7px;border-radius:4px;transition:.15s;line-height:1;flex-shrink:0;white-space:nowrap}
+.dup-btn:hover{color:var(--bleu);background:var(--bleu-p)}
+.del-btn:hover{color:var(--rouge);background:#ffeaea}
 .delbtn:hover{color:var(--rouge);background:#ffeaea}
 .ii-bot{display:flex;align-items:center;gap:8px}
 .ii-bot .lbl{font-size:9px;font-weight:700;color:var(--bleu);text-transform:uppercase;letter-spacing:.04em}
@@ -84,7 +86,14 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--texte)
 .ii-bot .calc{margin-left:auto;font-size:11px;font-weight:700;color:var(--bleu);background:var(--bleu-c);padding:3px 10px;border-radius:5px;white-space:nowrap}
 .addbtn{width:100%;padding:9px;border:2px dashed var(--bleu-c);border-radius:7px;background:none;color:var(--bleu);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif;margin-top:4px}
 .addbtn:hover{background:var(--bleu-p);border-color:var(--bleu)}
-.printbtn{margin:14px 18px;padding:12px;background:var(--bleu);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif}
+.newbtn{margin:14px 18px 4px;padding:10px;background:#fff;color:var(--bleu);border:2px solid var(--bleu);border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif}
+.newbtn:hover{background:var(--bleu-p)}
+.savebtn{margin:4px 18px 0;padding:11px;background:var(--vert);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px}
+.savebtn:hover{background:#136e3a}
+.clearbtn{margin:14px 18px 0;padding:10px;background:none;color:var(--bleu);border:1.5px solid var(--bleu-c);border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif}
+.clearbtn:hover{background:var(--bleu-p);border-color:var(--bleu)}
+.savebtn.saving{opacity:.7}
+.printbtn{margin:8px 18px;padding:12px;background:var(--bleu);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif}
 .printbtn:hover{background:#0d4a87}
 .delbtn-inv{margin:0 18px 14px;padding:9px;background:none;color:var(--rouge);border:1.5px solid #fcc;border-radius:8px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif}
 .delbtn-inv:hover{background:#fff0f0}
@@ -233,6 +242,10 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
       <div class="frow"><label>Contact</label><input type="text" id="cContact" oninput="autosave()"></div>
     </div>
     <div class="frow"><label>Projet / Formation</label><input type="text" id="cProjet" oninput="autosave()"></div>
+    <div id="presetZone" style="display:none;margin-top:-4px;margin-bottom:8px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--bleu);margin-bottom:5px;">Presets rapides</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px" id="presetBtns"></div>
+    </div>
     <div class="frow"><label>Description</label><textarea id="cDesc" rows="2" oninput="autosave()"></textarea></div>
   </div>
 
@@ -247,14 +260,36 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
         <div class="ical-icon">📂</div>
         <div class="ical-hint">Glissez votre fichier <strong>.ics</strong> ou cliquez<br><span>Exporter depuis Calendrier → Fichier → Exporter</span></div>
       </div>
-      <div class="ical-filter">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:4px">
+      <input type="checkbox" id="icalSelAll" onchange="toggleSelAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:var(--bleu)">
+      <label for="icalSelAll" style="font-size:10px;font-weight:700;color:var(--bleu);cursor:pointer;letter-spacing:.04em">TOUT SÉLECTIONNER</label>
+    </div>
+    <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--bleu)">Filtrer par période</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;font-weight:600;color:var(--texte);white-space:nowrap">Du</span>
+          <input type="date" id="icalDateFrom" onchange="renderIcalEvents()" style="flex:1;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;font-family:Montserrat,sans-serif;outline:none">
+          <span style="font-size:10px;font-weight:600;color:var(--texte);white-space:nowrap">au</span>
+          <input type="date" id="icalDateTo" onchange="renderIcalEvents()" style="flex:1;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;font-family:Montserrat,sans-serif;outline:none">
+          <button onclick="clearIcalDates()" style="background:none;border:1.5px solid var(--border);border-radius:6px;padding:4px 8px;font-size:10px;cursor:pointer;font-family:Montserrat,sans-serif;color:var(--doux);white-space:nowrap">Tout</button>
+        </div>
+      </div>
+      <div class="ical-filter" style="margin-top:6px">
         <label>Filtrer par mot-clé</label>
         <input type="text" id="icalFilter" placeholder="ex: NDRC, cours, BTS..." value="">
+      </div>
+      <div class="ical-filter" style="margin-top:6px">
+        <label>Durée par défaut (h)</label>
+        <input type="number" id="icalDefaultH" value="0" min="0" step="0.5" style="width:70px" title="0 = utiliser la durée du calendrier">
+        <span style="font-size:9px;color:#aaa;font-weight:300">0 = depuis calendrier</span>
       </div>
       <div id="icalEvents"></div>
     </div>
   </div>
 
+  <button class="clearbtn" onclick="clearForm()">✦ Nouvelle facture vide</button>
+  <button class="newbtn" onclick="clearForm()">＋ Nouvelle facture vierge</button>
+  <button class="savebtn" id="saveBtn" onclick="manualsave()">💾 Sauvegarder</button>
   <button class="printbtn" onclick="window.print()">🖨 Imprimer / Exporter PDF</button>
   <button class="delbtn-inv" onclick="deleteCurrentInvoice()">🗑 Supprimer cette facture</button>
 </div>
@@ -278,9 +313,11 @@ const CLIENTS = {
 };
 
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MOIS3 = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 let currentClient = 'affida';
 let currentYM = '';  // 'YYYY-MM'
 let inters = [];
+let _interIdCounter = 1;
 
 /* ── STOCKAGE : API Upstash ou localStorage (fallback local) ── */
 const isLocal = location.protocol === 'file:';
@@ -348,7 +385,7 @@ async function dbDelete(client, ym) {
 /* ── SAUVEGARDE ── */
 let saveTimer = null;
 function autosave() {
-  updatePreview();
+  updatePreview(); // immédiat
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     if (!currentYM) return;
@@ -378,7 +415,7 @@ async function loadInvoice(client, ym) {
     set('fNum', d.fNum); set('fDate', d.fDate); set('fTerms', d.fTerms);
     set('cNom', d.cNom); set('cAddr', d.cAddr); set('cSiret', d.cSiret);
     set('cContact', d.cContact); set('cProjet', d.cProjet); set('cDesc', d.cDesc);
-    inters = (d.inters||[]).map(i => ({...i, id: Date.now()+Math.random()}));
+    inters = (d.inters||[]).map(i => ({...i, id: _interIdCounter++}));
   } else {
     const c = CLIENTS[client];
     set('fNum', ''); set('fDate', firstDayOfMonth(ym)); set('fTerms', c.terms);
@@ -387,22 +424,70 @@ async function loadInvoice(client, ym) {
     inters = [];
   }
   renderInters();
-  await renderHist();
   renderClients();
+  await renderHist();
   updateNavLabel();
   updatePreview();
 }
 
-function firstDayOfMonth(ym) { return ym + '-01'; }
+function firstDayOfMonth(ym) { const today = new Date(); const [y,m] = ym.split('-'); if(+y===today.getFullYear()&&+m===today.getMonth()+1) return today.toISOString().split('T')[0]; return ym+'-01'; }
 
 /* ── NAVIGATION MOIS ── */
 function ymToDate(ym) { const [y,m] = ym.split('-'); return new Date(+y, +m-1, 1); }
 function dateToYM(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function currentYMLabel(ym) { if(!ym) return '—'; const [y,m] = ym.split('-'); return MOIS[+m-1] + ' ' + y; }
-function updateNavLabel() { document.getElementById('mnavLabel').textContent = currentYMLabel(currentYM); document.getElementById('fcTitle').textContent = CLIENTS[currentClient].label; document.getElementById('histClient').textContent = '— ' + CLIENTS[currentClient].label; }
+function updateNavLabel() {
+  document.getElementById('mnavLabel').textContent = currentYMLabel(currentYM);
+  document.getElementById('fcTitle').textContent = CLIENTS[currentClient].label;
+  document.getElementById('histClient').textContent = '— ' + CLIENTS[currentClient].label;
+  updatePresets();
+}
+const PRESETS = {
+  excellence: [
+    {label:'CS Accueil Réception 06-02', projet:'CS Accueil Réception', desc:'Module 06-02', tarif:45},
+    {label:'BTS GTLA 06-03', projet:'BTS GTLA', desc:'Module 06-03', tarif:45},
+    {label:'CQP 05-03', projet:'CQP', desc:'Module 05-03', tarif:45}
+  ],
+  affida: [
+    {label:'BTS NDRC 2 LM', projet:'BTS NDRC 2 LM', desc:'Cours en présentiel', tarif:50},
+    {label:'BTS NDRC 2 VO', projet:'BTS NDRC 2 VO', desc:'Cours en présentiel', tarif:50}
+  ],
+  rush: [
+    {label:'BTS NDRC 1B', projet:'Formation BTS NDRC 1B', desc:'', tarif:50},
+    {label:'BTS MCO 1A', projet:'Formation BTS MCO 1A', desc:'', tarif:50},
+    {label:'BTS NDRC 1A', projet:'Formation BTS NDRC 1A', desc:'', tarif:50}
+  ],
+  skillup: [
+    {label:'RPMS CCP1', projet:'Intervention studio', desc:'RPMS CCP1', tarif:50},
+    {label:'RPMS CCP2', projet:'Intervention studio', desc:'RPMS CCP2', tarif:50}
+  ]
+};
+function updatePresets() {
+  const zone = document.getElementById('presetZone');
+  const btns = document.getElementById('presetBtns');
+  const presets = PRESETS[currentClient];
+  if (!presets || !zone || !btns) return;
+  zone.style.display = presets ? 'block' : 'none';
+  btns.innerHTML = '';
+  presets.forEach(p => {
+    const b = document.createElement('button');
+    b.style.cssText = 'padding:4px 10px;border:1.5px solid var(--bleu-c);border-radius:6px;background:#fff;color:var(--bleu);font-size:10px;font-weight:700;cursor:pointer;font-family:Montserrat,sans-serif;transition:.15s';
+    b.textContent = p.label;
+    b.onmouseover = ()=>b.style.background='var(--bleu-p)';
+    b.onmouseout = ()=>b.style.background='#fff';
+    b.onclick = () => {
+      set('cProjet', p.projet);
+      set('cDesc', p.desc);
+      // mettre à jour le tarif des interventions vides
+      inters.forEach(i=>{ if(i.p===50||i.p===45) i.p=p.tarif; });
+      renderInters(); autosave();
+    };
+    btns.appendChild(b);
+  });
+}
 async function prevMonth() { const d = ymToDate(currentYM); d.setMonth(d.getMonth()-1); await loadInvoice(currentClient, dateToYM(d)); }
 async function nextMonth() { const d = ymToDate(currentYM); d.setMonth(d.getMonth()+1); await loadInvoice(currentClient, dateToYM(d)); }
-async function newMonth() { await loadInvoice(currentClient, dateToYM(new Date())); }
+async function newMonth() { const ym = dateToYM(new Date()); currentYM = ym; await loadInvoice(currentClient, ym); }
 
 /* ── CLIENTS (sidebar) ── */
 function renderClients() {
@@ -446,42 +531,80 @@ async function deleteCurrentInvoice() {
 
 /* ── INTERVENTIONS ── */
 function addInter(date='',desc='',h=4,p=50) {
-  inters.push({id:Date.now()+Math.random(), date, desc, h, p});
+  inters.push({id: _interIdCounter++, date, desc, h, p});
   renderInters(); autosave();
 }
-function delInter(id) { inters=inters.filter(i=>i.id!==id); renderInters(); autosave(); }
+function delInter(id) { inters=inters.filter(i=>+i.id!==+id); renderInters(); autosave(); }
+function dupInter(id) { const i=inters.find(x=>+x.id===+id); if(!i) return; addInter(i.date,i.desc,i.h,i.p); }
 function updInter(id,field,val) {
   const i=inters.find(x=>x.id===id); if(!i) return;
   i[field]=(field==='h'||field==='p')?parseFloat(val)||0:val;
-  document.querySelector(`[data-id="${id}"] .calc`).textContent = fmtEur(i.h*i.p);
+  const calcEl = document.getElementById('calc_'+id); if(calcEl) calcEl.textContent = fmtEur(i.h*i.p);
   autosave();
 }
 function renderInters() {
-  const c=document.getElementById('interList'); c.innerHTML='';
+  const c = document.getElementById('interList');
+  if (!c) return;
+  c.innerHTML = '';
   inters.forEach(i => {
-    const d=document.createElement('div');
-    d.className='inter-item'; d.dataset.id=i.id;
-    d.innerHTML=`
-      <div class="ii-top">
-        <input class="di" type="date" value="${i.date}" onchange="updInter(${i.id},'date',this.value)">
-        <input class="dsc" type="text" value="${i.desc}" placeholder="Description" onchange="updInter(${i.id},'desc',this.value)">
-        <button class="delbtn" onclick="delInter(${i.id})">✕</button>
-      </div>
-      <div class="ii-bot">
-        <span class="lbl">Heures</span>
-        <input type="number" value="${i.h}" min="0" step="0.5" onchange="updInter(${i.id},'h',this.value)">
-        <span class="lbl">€/h</span>
-        <input type="number" value="${i.p}" min="0" onchange="updInter(${i.id},'p',this.value)">
-        <div class="calc">${fmtEur(i.h*i.p)}</div>
-      </div>`;
-    c.appendChild(d);
+    const wrap = document.createElement('div');
+    wrap.className = 'inter-item';
+    wrap.dataset.id = i.id;
+
+    // Ligne 1 : date + desc + boutons
+    const top = document.createElement('div');
+    top.className = 'ii-top';
+
+    const di = document.createElement('input');
+    di.className = 'di'; di.type = 'date'; di.value = i.date || '';
+    di.onchange = () => { i.date = di.value; autosave(); };
+
+    const ds = document.createElement('input');
+    ds.className = 'dsc'; ds.type = 'text'; ds.value = i.desc || ''; ds.placeholder = 'Description';
+    ds.onchange = () => { i.desc = ds.value; autosave(); };
+
+    const thisId = i.id;
+    const btnDup = document.createElement('button');
+    btnDup.className = 'delbtn'; btnDup.title = 'Dupliquer'; btnDup.innerHTML = '&#10697;';
+    btnDup.type = 'button';
+    btnDup.onclick = () => dupInter(thisId);
+
+    const btnDel = document.createElement('button');
+    btnDel.className = 'delbtn'; btnDel.title = 'Supprimer'; btnDel.innerHTML = '&#10005;';
+    btnDel.style.color = '#e03030';
+    btnDel.type = 'button';
+    btnDel.onclick = () => delInter(thisId);
+
+    top.append(di, ds, btnDup, btnDel);
+
+    // Ligne 2 : heures + tarif + total
+    const bot = document.createElement('div');
+    bot.className = 'ii-bot';
+
+    const lh = document.createElement('span'); lh.className = 'lbl'; lh.textContent = 'Heures';
+    const ih = document.createElement('input');
+    ih.type = 'number'; ih.value = i.h; ih.min = '0'; ih.step = '0.5';
+
+    const lp = document.createElement('span'); lp.className = 'lbl'; lp.textContent = '€/h';
+    const ip = document.createElement('input');
+    ip.type = 'number'; ip.value = i.p; ip.min = '0';
+
+    const calc = document.createElement('div');
+    calc.className = 'calc'; calc.textContent = fmtEur(i.h * i.p);
+
+    ih.onchange = () => { i.h = parseFloat(ih.value) || 0; calc.textContent = fmtEur(i.h * i.p); autosave(); };
+    ip.onchange = () => { i.p = parseFloat(ip.value) || 0; calc.textContent = fmtEur(i.h * i.p); autosave(); };
+
+    bot.append(lh, ih, lp, ip, calc);
+    wrap.append(top, bot);
+    c.appendChild(wrap);
   });
 }
 
 /* ── FORMAT ── */
 function v(id){return document.getElementById(id)?.value||''}
 function set(id,val){const el=document.getElementById(id);if(el&&val!==undefined)el.value=val}
-function fmtDate(d){if(!d)return'—';const[y,m,j]=d.split('-');return`${j} ${MOIS[+m-1].slice(0,3)} ${y}`}
+function fmtDate(d){if(!d)return'—';const[y,m,j]=d.split('-');return`${j} ${MOIS3[+m-1]} ${y}`}
 function fmtEur(n){return(parseFloat(n)||0).toFixed(2).replace('.',',')+' €'}
 
 /* ── PREVIEW ── */
@@ -582,55 +705,133 @@ function readIcal(file) {
 function parseIcal(text) {
   icalEventsAll = [];
   icalSelected.clear();
-  const lines = text.replace(/\r/g,'').split('\n');
+
+  // 1. Normaliser les fins de ligne
+  text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+
+  // 2. Déplier les lignes (RFC 5545 : continuation = espace ou tab en début)
+  text = text.replace(/\n[ \t]/g, '');
+
+  const lines = text.split('\n');
   let inEvent = false, ev = {};
-  lines.forEach(line => {
-    if (line === 'BEGIN:VEVENT') { inEvent=true; ev={}; }
-    else if (line === 'END:VEVENT') {
-      if (inEvent && ev.start && ev.summary) icalEventsAll.push(ev);
-      inEvent=false; ev={};
-    } else if (inEvent) {
-      if (line.startsWith('SUMMARY:')) ev.summary = line.slice(8).trim();
-      else if (line.startsWith('DTSTART')) {
-        const val = line.split(':').pop().trim();
-        ev.start = parseIcalDate(val);
-        ev.startRaw = val;
-      }
-      else if (line.startsWith('DTEND')) {
-        const val = line.split(':').pop().trim();
-        ev.end = parseIcalDate(val);
-        ev.duration = ev.start && ev.end ? Math.round((ev.end-ev.start)/3600000) : 0;
-      }
-      else if (line.startsWith('DESCRIPTION:')) ev.desc = line.slice(12).trim();
+
+  for (let line of lines) {
+    line = line.trim();
+    if (line === 'BEGIN:VEVENT') { inEvent = true; ev = {}; continue; }
+    if (line === 'END:VEVENT') {
+      if (ev.summary && ev.start) icalEventsAll.push(ev);
+      inEvent = false; ev = {}; continue;
     }
+    if (!inEvent) continue;
+
+    // Extraire propriété et valeur (gérer PROP;PARAM=val:VALUE)
+    const colonIdx = line.indexOf(':');
+    if (colonIdx === -1) continue;
+    const prop = line.slice(0, colonIdx).toUpperCase();
+    const val  = line.slice(colonIdx + 1).trim();
+    const propName = prop.split(';')[0]; // ignorer les paramètres
+
+    if (propName === 'SUMMARY') {
+      ev.summary = val.replace(/\\n/g,' ').replace(/\\,/g,',').trim();
+    }
+    else if (propName === 'DESCRIPTION') {
+      ev.desc = val.replace(/\\n/g,' ').trim();
+    }
+    else if (propName === 'DTSTART') {
+      ev.start = parseIcalDate(val);
+    }
+    else if (propName === 'DTEND') {
+      ev.end = parseIcalDate(val);
+    }
+    else if (propName === 'DURATION') {
+      ev.durationStr = val; // ex: PT4H
+    }
+  }
+
+  // Calculer durées
+  icalEventsAll.forEach(ev => {
+    if (ev.start && ev.end) {
+      ev.duration = Math.round((ev.end - ev.start) / 3600000);
+    } else if (ev.durationStr) {
+      const m = ev.durationStr.match(/PT?(\d+)H/);
+      ev.duration = m ? +m[1] : 0;
+    } else {
+      ev.duration = 0;
+    }
+    // Durée 0 ou négative → journée complète → mettre 7h par défaut
+    if (ev.duration <= 0) ev.duration = 0;
   });
-  // trier par date
-  icalEventsAll.sort((a,b) => a.start - b.start);
+
+  // Trier par date
+  icalEventsAll.sort((a,b) => (a.start||0) - (b.start||0));
+
+  // Afficher le résultat
+  const total = icalEventsAll.length;
+  const zone = document.getElementById('icalEvents');
+  if (total === 0) {
+    zone.innerHTML = '<div style="font-size:11px;color:var(--rouge);padding:8px;text-align:center;">Aucun événement trouvé dans ce fichier</div>';
+    return;
+  }
+  zone.innerHTML = `<div style="font-size:10px;color:var(--vert);font-weight:700;padding:6px 0;">✓ ${total} événement${total>1?'s':''} importé${total>1?'s':''}</div>`;
   renderIcalEvents();
 }
 
 function parseIcalDate(s) {
-  s = s.replace(/[TZ]/g,' ').trim();
-  if (s.length >= 8) {
-    const y=s.slice(0,4), m=s.slice(4,6), d=s.slice(6,8);
-    return new Date(+y, +m-1, +d);
+  // Supprimer tout ce qui suit un Z ou T (timezone)
+  // Format : 20260506 ou 20260506T090000 ou 20260506T090000Z
+  const clean = s.replace(/[TZ].*/,'');
+  if (clean.length >= 8) {
+    const y = +clean.slice(0,4);
+    const m = +clean.slice(4,6) - 1;
+    const d = +clean.slice(6,8);
+    return new Date(y, m, d);
   }
   return null;
 }
 
 function filterAndRender() { renderIcalEvents(); }
+function clearIcalDates() {
+  const f = document.getElementById('icalDateFrom');
+  const t = document.getElementById('icalDateTo');
+  if(f) f.value=''; if(t) t.value='';
+  renderIcalEvents();
+}
+
+function toggleSelAll(checked) {
+  const filter = (document.getElementById('icalFilter')?.value||'').toLowerCase();
+  const dateFrom2 = document.getElementById('icalDateFrom')?.value || '';
+  const dateTo2   = document.getElementById('icalDateTo')?.value   || '';
+  const dFrom2 = dateFrom2 ? new Date(dateFrom2) : null;
+  const dTo2   = dateTo2   ? new Date(dateTo2 + 'T23:59:59') : null;
+  icalEventsAll.forEach((ev, idx) => {
+    if (!ev.start) return;
+    const matchKw = !filter || ev.summary.toLowerCase().includes(filter);
+    const afterFrom = !dFrom2 || ev.start >= dFrom2;
+    const beforeTo  = !dTo2   || ev.start <= dTo2;
+    if (matchKw && afterFrom && beforeTo) {
+      if (checked) icalSelected.add(idx); else icalSelected.delete(idx);
+    }
+  });
+  renderIcalEvents();
+  const btn = document.getElementById('icalImportBtn');
+  if (btn) btn.className = 'ical-import-btn' + (icalSelected.size > 0 ? ' show' : '');
+}
 
 function renderIcalEvents() {
   const filter = (document.getElementById('icalFilter')?.value||'').toLowerCase();
   const container = document.getElementById('icalEvents');
   if (!icalEventsAll.length) { container.innerHTML=''; return; }
-  // filtrer par mois courant + mot-clé
-  const [cy, cm] = currentYM ? currentYM.split('-') : ['',''];
+  // Filtre par plage de dates
+  const dateFrom = document.getElementById('icalDateFrom')?.value || '';
+  const dateTo   = document.getElementById('icalDateTo')?.value   || '';
+  const dFrom = dateFrom ? new Date(dateFrom) : null;
+  const dTo   = dateTo   ? new Date(dateTo + 'T23:59:59') : null;
   let evs = icalEventsAll.filter(ev => {
     if (!ev.start) return false;
-    const sameMonth = !cm || (ev.start.getMonth()+1 === +cm && ev.start.getFullYear() === +cy);
-    const matchKw = !filter || ev.summary.toLowerCase().includes(filter);
-    return sameMonth && matchKw;
+    const matchKw = !filter || ev.summary.toLowerCase().includes(filter) || (ev.desc||'').toLowerCase().includes(filter);
+    const afterFrom = !dFrom || ev.start >= dFrom;
+    const beforeTo  = !dTo   || ev.start <= dTo;
+    return matchKw && afterFrom && beforeTo;
   });
   if (!evs.length) {
     container.innerHTML = '<div style="font-size:11px;color:#aaa;text-align:center;padding:8px;font-weight:300;">Aucun événement ce mois-ci</div>';
@@ -682,20 +883,59 @@ function importSelectedEvents() {
   const [cy, cm] = currentYM ? currentYM.split('-') : ['',''];
   let evs = icalEventsAll.filter(ev => {
     if (!ev.start) return false;
+    const matchKw = !filter || ev.summary.toLowerCase().includes(filter) || (ev.desc||'').toLowerCase().includes(filter);
     const sameMonth = !cm || (ev.start.getMonth()+1 === +cm && ev.start.getFullYear() === +cy);
-    const matchKw = !filter || ev.summary.toLowerCase().includes(filter);
-    return sameMonth && matchKw;
+    return matchKw;
   });
+  const defaultH = parseFloat(document.getElementById('icalDefaultH')?.value||'0') || 0;
+  const allEvs = icalEventsAll;
   icalSelected.forEach(idx => {
-    const ev = evs[idx];
+    const ev = allEvs[idx];
     if (!ev) return;
     const d = ev.start;
     const dateStr = d ? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') : '';
-    const h = ev.duration > 0 ? ev.duration : 4;
-    addInter(dateStr, ev.summary, h, 50);
+    const heures = defaultH > 0 ? defaultH : (ev.duration > 0 ? ev.duration : 2);
+    addInter(dateStr, ev.summary, heures, 50);
   });
   icalSelected.clear();
   renderIcalEvents();
+}
+
+function clearForm() {
+  if (inters.length > 0 && !confirm('Vider le formulaire et commencer une nouvelle facture ?')) return;
+  set('fNum',''); set('fDate', new Date().toISOString().split('T')[0]);
+  set('cNom',''); set('cAddr',''); set('cSiret','');
+  set('cContact',''); set('cProjet',''); set('cDesc','');
+  inters = [];
+  renderInters();
+  updatePreview();
+}
+
+function clearForm() {
+  if (!confirm('Effacer le formulaire pour créer une nouvelle facture ?')) return;
+  set('fNum',''); set('fDate', new Date().toISOString().split('T')[0]); set('fTerms','8 jours');
+  set('cNom',''); set('cAddr',''); set('cSiret',''); set('cContact',''); set('cProjet',''); set('cDesc','');
+  inters = [];
+  renderInters();
+  document.querySelectorAll('.ctab,.citem').forEach(t => t.classList.remove('active'));
+  updatePreview();
+}
+
+async function manualsave() {
+  const btn = document.getElementById('saveBtn');
+  if(btn){ btn.textContent='⏳ Sauvegarde...'; btn.classList.add('saving'); }
+  if (!currentYM) return;
+  const data = {
+    fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
+    cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
+    cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
+    inters
+  };
+  await dbSet(currentClient, currentYM, data);
+  if(btn){ btn.textContent='✓ Sauvegardé !'; setTimeout(()=>{ btn.textContent='💾 Sauvegarder'; btn.classList.remove('saving'); },2000); }
+  const el = document.getElementById('saveOk');
+  if(el){ el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('on'),2000); }
+  renderHist();
 }
 
 /* ── INIT ── */
@@ -703,10 +943,14 @@ const todayYM = dateToYM(new Date());
 renderClients();
 // charger le dernier client/mois actif
 const lastActive = isLocal ? localStorage.getItem('lc2_last') : sessionStorage.getItem('lc2_last');
-if (lastActive) {
-  try { const {c,ym}=JSON.parse(lastActive); loadInvoice(c,ym); }
-  catch(e){ loadInvoice('affida', todayYM); }
-} else { loadInvoice('affida', todayYM); }
+async function initLoad() {
+  if (lastActive) {
+    try { const {c,ym}=JSON.parse(lastActive); await loadInvoice(c,ym); }
+    catch(e){ await loadInvoice('affida', todayYM); }
+  } else { await loadInvoice('affida', todayYM); }
+  updatePreview(); // forcer après chargement complet
+}
+initLoad();
 // mémoriser le dernier actif dans la session
 setInterval(() => {
   const val = JSON.stringify({c:currentClient,ym:currentYM});
