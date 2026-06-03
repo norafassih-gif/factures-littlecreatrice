@@ -282,48 +282,104 @@ let currentClient = 'affida';
 let currentYM = '';  // 'YYYY-MM'
 let inters = [];
 
-/* ── CLÉS LOCALSTORAGE ── */
-function key(client, ym) { return `lc2_${client}_${ym}`; }
-function allKeys(client) {
-  const keys = [];
-  for (let i=0; i<localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith(`lc2_${client}_`)) keys.push(k);
+/* ── STOCKAGE : API Upstash ou localStorage (fallback local) ── */
+const isLocal = location.protocol === 'file:';
+
+function apiKey(client, ym) { return `${client}_${ym}`; }
+
+// Sauvegarde
+async function dbSet(client, ym, data) {
+  const k = apiKey(client, ym);
+  if (isLocal) {
+    localStorage.setItem('lc2_'+k, JSON.stringify(data));
+    // index local
+    const idx = JSON.parse(localStorage.getItem('lc2___index__')||'[]');
+    if (!idx.includes(k)) { idx.push(k); localStorage.setItem('lc2___index__', JSON.stringify(idx)); }
+  } else {
+    await fetch('/api/data', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'set', key:k, value:data })
+    });
   }
-  return keys.sort().reverse();
+}
+
+// Chargement
+async function dbGet(client, ym) {
+  const k = apiKey(client, ym);
+  if (isLocal) {
+    const raw = localStorage.getItem('lc2_'+k);
+    return raw ? JSON.parse(raw) : null;
+  } else {
+    const r = await fetch(`/api/data?action=get&key=${k}`);
+    const j = await r.json();
+    return j.value || null;
+  }
+}
+
+// Lister les mois d'un client
+async function dbList(client) {
+  if (isLocal) {
+    const idx = JSON.parse(localStorage.getItem('lc2___index__')||'[]');
+    return idx.filter(k => k.startsWith(client+'_')).map(k => k.replace(client+'_','')).sort().reverse();
+  } else {
+    const r = await fetch('/api/data?action=list');
+    const j = await r.json();
+    return (j.keys||[]).filter(k => k.startsWith(client+'_')).map(k => k.replace(client+'_','')).sort().reverse();
+  }
+}
+
+// Supprimer
+async function dbDelete(client, ym) {
+  const k = apiKey(client, ym);
+  if (isLocal) {
+    localStorage.removeItem('lc2_'+k);
+    const idx = JSON.parse(localStorage.getItem('lc2___index__')||'[]').filter(x=>x!==k);
+    localStorage.setItem('lc2___index__', JSON.stringify(idx));
+  } else {
+    await fetch('/api/data', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'delete', key:k })
+    });
+  }
 }
 
 /* ── SAUVEGARDE ── */
+let saveTimer = null;
 function autosave() {
-  if (!currentYM) return;
-  const data = {
-    fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
-    cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
-    cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
-    inters
-  };
-  localStorage.setItem(key(currentClient, currentYM), JSON.stringify(data));
-  const el = document.getElementById('saveOk');
-  el.classList.add('on');
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('on'), 2000);
   updatePreview();
-  renderHist();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (!currentYM) return;
+    const data = {
+      fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
+      cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
+      cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
+      inters
+    };
+    await dbSet(currentClient, currentYM, data);
+    const el = document.getElementById('saveOk');
+    el.classList.add('on');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('on'), 2000);
+    renderHist();
+  }, 800);
 }
 
 /* ── CHARGEMENT ── */
-function loadInvoice(client, ym) {
+async function loadInvoice(client, ym) {
   currentClient = client;
   currentYM = ym;
-  const raw = localStorage.getItem(key(client, ym));
-  if (raw) {
-    const d = JSON.parse(raw);
+  // Indicateur chargement
+  document.getElementById('mnavLabel').textContent = '…';
+  const d = await dbGet(client, ym);
+  if (d) {
     set('fNum', d.fNum); set('fDate', d.fDate); set('fTerms', d.fTerms);
     set('cNom', d.cNom); set('cAddr', d.cAddr); set('cSiret', d.cSiret);
     set('cContact', d.cContact); set('cProjet', d.cProjet); set('cDesc', d.cDesc);
     inters = (d.inters||[]).map(i => ({...i, id: Date.now()+Math.random()}));
   } else {
-    // nouvelle facture : préremplir depuis les infos client
     const c = CLIENTS[client];
     set('fNum', ''); set('fDate', firstDayOfMonth(ym)); set('fTerms', c.terms);
     set('cNom', c.nom); set('cAddr', c.addr); set('cSiret', c.siret);
@@ -331,7 +387,7 @@ function loadInvoice(client, ym) {
     inters = [];
   }
   renderInters();
-  renderHist();
+  await renderHist();
   renderClients();
   updateNavLabel();
   updatePreview();
@@ -344,20 +400,20 @@ function ymToDate(ym) { const [y,m] = ym.split('-'); return new Date(+y, +m-1, 1
 function dateToYM(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function currentYMLabel(ym) { if(!ym) return '—'; const [y,m] = ym.split('-'); return MOIS[+m-1] + ' ' + y; }
 function updateNavLabel() { document.getElementById('mnavLabel').textContent = currentYMLabel(currentYM); document.getElementById('fcTitle').textContent = CLIENTS[currentClient].label; document.getElementById('histClient').textContent = '— ' + CLIENTS[currentClient].label; }
-function prevMonth() { const d = ymToDate(currentYM); d.setMonth(d.getMonth()-1); loadInvoice(currentClient, dateToYM(d)); }
-function nextMonth() { const d = ymToDate(currentYM); d.setMonth(d.getMonth()+1); loadInvoice(currentClient, dateToYM(d)); }
-function newMonth() { loadInvoice(currentClient, dateToYM(new Date())); }
+async function prevMonth() { const d = ymToDate(currentYM); d.setMonth(d.getMonth()-1); await loadInvoice(currentClient, dateToYM(d)); }
+async function nextMonth() { const d = ymToDate(currentYM); d.setMonth(d.getMonth()+1); await loadInvoice(currentClient, dateToYM(d)); }
+async function newMonth() { await loadInvoice(currentClient, dateToYM(new Date())); }
 
 /* ── CLIENTS (sidebar) ── */
 function renderClients() {
   const c = document.getElementById('clientList');
   c.innerHTML = '';
   Object.entries(CLIENTS).forEach(([k,cl]) => {
-    const count = allKeys(k).length;
+    const count = 0; // mis à jour async
     const div = document.createElement('div');
     div.className = 'citem' + (k===currentClient?' active':'');
     div.innerHTML = `<span>${cl.label}</span>${count>0?`<span class="cbadge">${count}</span>`:''}`;
-    div.onclick = () => { const keys = allKeys(k); loadInvoice(k, keys.length ? keys[0].replace(`lc2_${k}_`,'') : dateToYM(new Date())); };
+    div.onclick = async () => { const keys = await dbList(k); loadInvoice(k, keys.length ? keys[0] : dateToYM(new Date())); };
     c.appendChild(div);
   });
 }
@@ -369,7 +425,7 @@ function renderHist() {
   const keys = allKeys(currentClient);
   if (!keys.length) { c.innerHTML = '<div class="no-hist">Aucune facture</div>'; return; }
   keys.forEach(k => {
-    const ym = k.replace(`lc2_${currentClient}_`,'');
+    const ym = k; // déjà le format YYYY-MM
     const raw = localStorage.getItem(k);
     let total = 0, num = '';
     if (raw) { try { const d=JSON.parse(raw); total=(d.inters||[]).reduce((s,i)=>s+i.h*i.p,0); num=d.fNum||''; } catch(e){} }
@@ -381,12 +437,11 @@ function renderHist() {
   });
 }
 
-function deleteCurrentInvoice() {
+async function deleteCurrentInvoice() {
   if (!confirm(`Supprimer la facture de ${currentYMLabel(currentYM)} ?`)) return;
-  localStorage.removeItem(key(currentClient, currentYM));
-  const keys = allKeys(currentClient);
-  if (keys.length) loadInvoice(currentClient, keys[0].replace(`lc2_${currentClient}_`,''));
-  else loadInvoice(currentClient, dateToYM(new Date()));
+  await dbDelete(currentClient, currentYM);
+  const keys = await dbList(currentClient);
+  loadInvoice(currentClient, keys.length ? keys[0] : dateToYM(new Date()));
 }
 
 /* ── INTERVENTIONS ── */
@@ -490,18 +545,16 @@ function updatePreview() {
 
 
 /* ── NUMÉRO AUTO ── */
-function genNumAuto() {
+async function genNumAuto() {
   const mm = currentYM ? currentYM.split('-')[1] : String(new Date().getMonth()+1).padStart(2,'0');
-  // compter toutes les factures de ce mois tous clients confondus
+  const existing = await dbGet(currentClient, currentYM);
+  if (existing && existing.fNum) { set('fNum', existing.fNum); return; }
+  // Compter les factures du mois pour tous les clients
   let count = 0;
-  for (let i=0; i<localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith('lc2_') && k.includes('_'+currentYM)) count++;
+  for (const clientKey of Object.keys(CLIENTS)) {
+    const months = await dbList(clientKey);
+    if (months.includes(currentYM)) count++;
   }
-  // incrémenter si la facture courante est déjà sauvegardée
-  const existing = localStorage.getItem(key(currentClient, currentYM));
-  const alreadySaved = existing && JSON.parse(existing).fNum;
-  if (alreadySaved) { set('fNum', alreadySaved); autosave(); return; }
   count++;
   const num = mm + '/' + String(count).padStart(3,'0');
   set('fNum', num);
@@ -648,14 +701,17 @@ function importSelectedEvents() {
 /* ── INIT ── */
 const todayYM = dateToYM(new Date());
 renderClients();
-// charger le dernier client/mois actif ou mois courant
-const lastActive = localStorage.getItem('lc2_last');
+// charger le dernier client/mois actif
+const lastActive = isLocal ? localStorage.getItem('lc2_last') : sessionStorage.getItem('lc2_last');
 if (lastActive) {
   try { const {c,ym}=JSON.parse(lastActive); loadInvoice(c,ym); }
   catch(e){ loadInvoice('affida', todayYM); }
 } else { loadInvoice('affida', todayYM); }
-// sauvegarder le dernier actif à chaque changement
-setInterval(() => localStorage.setItem('lc2_last', JSON.stringify({c:currentClient,ym:currentYM})), 2000);
+// mémoriser le dernier actif dans la session
+setInterval(() => {
+  const val = JSON.stringify({c:currentClient,ym:currentYM});
+  isLocal ? localStorage.setItem('lc2_last', val) : sessionStorage.setItem('lc2_last', val);
+}, 2000);
 // filtre ical live
 document.getElementById('icalFilter')?.addEventListener('input', filterAndRender);
 // auto-numéro au chargement si vide
