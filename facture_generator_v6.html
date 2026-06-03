@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Little Créatrice — Factures</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bleu:#185FA5; --bleu-m:#378ADD; --bleu-c:#dceefb; --bleu-p:#eef6fd;
+  --noir:#111; --texte:#1e1e1e; --doux:#444; --border:#d0dde8;
+  --bg:#f0f4f8; --blanc:#fff; --vert:#1a8a4a; --rouge:#e03030;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--texte);min-height:100vh;font-weight:400}
+
+/* ══ HEADER ══ */
+.header{background:var(--bleu-c);border-bottom:3px solid var(--bleu);padding:13px 24px;display:flex;align-items:center;gap:16px}
+.lw{display:flex;align-items:center}
+.ll{font-size:19px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--noir)}
+.lb{border:2px solid var(--noir);padding:2px 10px;margin-left:2px}
+.lc{font-size:19px;font-weight:300;letter-spacing:.25em;text-transform:uppercase;color:var(--noir)}
+.hsep{width:1px;height:28px;background:var(--bleu);opacity:.3;margin:0 6px}
+.hsub{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bleu)}
+.hright{margin-left:auto;display:flex;align-items:center;gap:12px}
+.save-ok{font-size:10px;font-weight:600;color:var(--vert);letter-spacing:.04em;opacity:0;transition:.4s}
+.save-ok.on{opacity:1}
+.nda{background:var(--bleu);color:#fff;border-radius:20px;padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:.06em}
+
+/* ══ LAYOUT 3 COLONNES ══ */
+.layout{display:flex;height:calc(100vh - 62px)}
+
+/* ── COLONNE 1 : clients + historique ── */
+.sidebar{width:220px;min-width:220px;background:var(--blanc);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-section{padding:14px 14px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--bleu);border-bottom:1px solid #eef2f7}
+.client-list{display:flex;flex-direction:column;gap:3px;padding:10px 10px 6px}
+.citem{padding:8px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;color:var(--texte);display:flex;align-items:center;justify-content:space-between}
+.citem:hover{background:var(--bleu-p);color:var(--bleu)}
+.citem.active{background:var(--bleu);color:#fff}
+.citem .cbadge{font-size:9px;font-weight:700;background:rgba(255,255,255,.25);border-radius:10px;padding:1px 6px;opacity:.8}
+.citem.active .cbadge{background:rgba(255,255,255,.3)}
+.hist-list{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.hitem{padding:7px 12px;border-radius:7px;font-size:11px;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:space-between;border:1px solid transparent}
+.hitem:hover{background:var(--bleu-p);border-color:var(--bleu-c)}
+.hitem.active{background:var(--bleu-c);border-color:var(--bleu);font-weight:700}
+.hitem .hdate{font-weight:600;color:var(--texte)}
+.hitem .hamt{font-size:10px;font-weight:700;color:var(--bleu)}
+.hitem.active .hdate{color:var(--bleu)}
+.no-hist{font-size:11px;color:#bbb;padding:12px;text-align:center;font-weight:300}
+.new-btn{margin:10px;padding:9px;border:2px dashed var(--bleu-c);border-radius:7px;background:none;color:var(--bleu);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif}
+.new-btn:hover{background:var(--bleu-p);border-color:var(--bleu)}
+
+/* ── COLONNE 2 : formulaire ── */
+.form-col{width:360px;min-width:360px;background:var(--blanc);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.fc-head{padding:14px 18px 10px;border-bottom:1px solid #eef2f7;display:flex;align-items:center;justify-content:space-between}
+.fc-head-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--noir)}
+.month-nav{display:flex;align-items:center;gap:6px}
+.mnav-btn{background:none;border:1.5px solid var(--border);border-radius:6px;padding:3px 9px;font-size:13px;cursor:pointer;color:var(--bleu);transition:.15s}
+.mnav-btn:hover{background:var(--bleu-p);border-color:var(--bleu)}
+.mnav-label{font-size:11px;font-weight:700;color:var(--bleu);letter-spacing:.04em;min-width:90px;text-align:center}
+.fsec{border-bottom:1px solid #eef2f7;padding:14px 18px}
+.fsec-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--bleu);margin-bottom:10px}
+.frow{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
+.frow:last-child{margin-bottom:0}
+.frow label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--bleu)}
+.frow input,.frow textarea,.frow select{border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;font-family:'Montserrat',sans-serif;font-weight:400;color:var(--texte);background:var(--blanc);outline:none;transition:.15s}
+.frow input:focus,.frow textarea:focus{border-color:var(--bleu);box-shadow:0 0 0 3px rgba(24,95,165,.07)}
+.frow textarea{resize:vertical}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* interventions */
+.inter-item{background:var(--bleu-p);border:1px solid var(--bleu-c);border-radius:8px;padding:10px 11px;margin-bottom:8px}
+.ii-top{display:flex;gap:7px;margin-bottom:7px}
+.ii-top input{font-size:11px;font-family:'Montserrat',sans-serif;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--texte);background:#fff;outline:none;transition:.15s}
+.ii-top input:focus{border-color:var(--bleu)}
+.ii-top input.di{width:120px;flex:none}
+.ii-top input.dsc{flex:1}
+.delbtn{background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:3px;border-radius:4px;transition:.15s;line-height:1}
+.delbtn:hover{color:var(--rouge);background:#ffeaea}
+.ii-bot{display:flex;align-items:center;gap:8px}
+.ii-bot .lbl{font-size:9px;font-weight:700;color:var(--bleu);text-transform:uppercase;letter-spacing:.04em}
+.ii-bot input{width:70px;font-size:12px;font-family:'Montserrat',sans-serif;font-weight:600;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--texte);background:#fff;outline:none;text-align:right;transition:.15s}
+.ii-bot input:focus{border-color:var(--bleu)}
+.ii-bot .calc{margin-left:auto;font-size:11px;font-weight:700;color:var(--bleu);background:var(--bleu-c);padding:3px 10px;border-radius:5px;white-space:nowrap}
+.addbtn{width:100%;padding:9px;border:2px dashed var(--bleu-c);border-radius:7px;background:none;color:var(--bleu);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif;margin-top:4px}
+.addbtn:hover{background:var(--bleu-p);border-color:var(--bleu)}
+.printbtn{margin:14px 18px;padding:12px;background:var(--bleu);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif}
+.printbtn:hover{background:#0d4a87}
+.delbtn-inv{margin:0 18px 14px;padding:9px;background:none;color:var(--rouge);border:1.5px solid #fcc;border-radius:8px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif}
+.delbtn-inv:hover{background:#fff0f0}
+
+/* ── COLONNE 3 : preview ── */
+.preview-col{flex:1;overflow-y:auto;padding:24px 28px;background:var(--bg)}
+.prev-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--bleu);margin-bottom:12px}
+
+/* ══ FACTURE ══ */
+.facture{background:#fff;border-radius:8px;box-shadow:0 2px 20px rgba(24,95,165,.1);width:100%;max-width:720px;font-family:'Montserrat',sans-serif}
+.fac-band{background:var(--bleu-c)!important;border-bottom:3px solid var(--bleu);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0}
+.fac-ll{font-size:14px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--noir)}
+.fac-lb{border:1.5px solid var(--noir);padding:2px 8px;margin-left:2px;display:inline-block}
+.fac-lc{font-size:14px;font-weight:300;letter-spacing:.24em;text-transform:uppercase;color:var(--noir)}
+.fac-br{text-align:right;font-size:9px;font-weight:300;color:var(--bleu);line-height:1.9;letter-spacing:.02em}
+.fac-br strong{font-weight:700;color:var(--noir);display:block;font-size:10px}
+.fac-body{padding:22px 24px}
+.fac-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.fac-mot{font-size:30px;font-weight:300;letter-spacing:6px;text-transform:uppercase;color:var(--bleu);line-height:1}
+.fac-num{font-size:10px;font-weight:700;color:var(--bleu);letter-spacing:.08em;margin-top:4px}
+.fac-dr{text-align:right;font-size:10px;font-weight:300;color:var(--doux);line-height:2}
+.fac-dr strong{font-weight:700;color:var(--texte)}
+.fdiv{height:2px;background:linear-gradient(90deg,var(--bleu),var(--bleu-c));border-radius:2px;margin:14px 0}
+.f2c{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:14px}
+.fcl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--bleu);margin-bottom:5px}
+.fcv{font-size:10px;font-weight:300;color:var(--texte);line-height:1.9}
+.fcv strong{font-weight:700;color:var(--noir)}
+.fdesc{background:var(--bleu-p)!important;border-left:3px solid var(--bleu);border-radius:0 6px 6px 0;padding:8px 13px;margin-bottom:16px;font-size:10px;font-weight:300;color:var(--texte)}
+.fdesc strong{font-weight:700;color:var(--bleu);font-size:9px;letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:3px}
+table.ft{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:10px}
+table.ft thead tr{background:var(--bleu)!important}
+table.ft thead th{padding:7px 10px;font-weight:700;text-align:left;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:#fff}
+table.ft thead th.r{text-align:right}
+table.ft tbody tr{border-bottom:1px solid #eef3f8}
+table.ft tbody tr:nth-child(even){background:var(--bleu-p)!important}
+table.ft tbody td{padding:7px 10px;font-weight:300;color:var(--texte)}
+table.ft tbody td.r{text-align:right;font-weight:600;color:var(--noir)}
+table.ft tbody td.b{font-weight:700;color:var(--noir)}
+.totw{display:flex;justify-content:flex-end;margin-bottom:16px}
+.totbox{min-width:220px}
+.trow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eef3f8;font-size:10px;font-weight:300;color:var(--doux)}
+.trow span:last-child{font-weight:600;color:var(--texte)}
+.trow.tot{border-bottom:none;border-top:2px solid var(--bleu);margin-top:4px;padding-top:8px;font-size:12px;font-weight:900;color:var(--bleu);letter-spacing:.04em;text-transform:uppercase}
+.fsign{font-size:10px;font-weight:300;color:var(--texte);line-height:2.2;margin-bottom:16px}
+.fsign strong{font-weight:700;color:var(--noir)}
+.frib{padding:11px 13px;background:var(--bleu-p)!important;border-radius:7px;margin-bottom:12px}
+.frib-t{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--bleu);margin-bottom:6px}
+.frib-g{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 18px;font-size:9px}
+.frib-r{display:flex;gap:5px}
+.frib-l{font-weight:700;color:var(--texte);white-space:nowrap}
+.frib-v{font-weight:300;color:var(--doux)}
+.ftva{font-size:8.5px;font-weight:300;color:#aaa;line-height:1.8;border-top:1px solid #eef3f8;padding-top:8px;letter-spacing:.02em}
+
+
+/* ══ ICAL ══ */
+.ical-zone{margin-top:14px;background:var(--bleu-p);border:1.5px solid var(--bleu-c);border-radius:10px;padding:14px}
+.ical-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--bleu);margin-bottom:10px}
+.ical-drop{border:2px dashed var(--bleu-c);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:.15s;background:#fff}
+.ical-drop:hover,.ical-drop.drag{border-color:var(--bleu);background:var(--bleu-p)}
+.ical-icon{font-size:22px;margin-bottom:6px}
+.ical-hint{font-size:11px;font-weight:300;color:var(--doux);line-height:1.7}
+.ical-hint strong{font-weight:700;color:var(--bleu)}
+.ical-hint span{font-size:10px;color:#aaa}
+.ical-filter{margin-top:10px;display:flex;align-items:center;gap:8px}
+.ical-filter label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--bleu);white-space:nowrap}
+.ical-filter input{flex:1;border:1.5px solid var(--border);border-radius:6px;padding:5px 9px;font-size:11px;font-family:'Montserrat',sans-serif;outline:none;background:#fff}
+.ical-filter input:focus{border-color:var(--bleu)}
+.ical-events-list{margin-top:10px;display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto}
+.ical-ev{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--bleu-c);border-radius:7px;padding:7px 10px;cursor:pointer;transition:.15s}
+.ical-ev:hover{border-color:var(--bleu);background:var(--bleu-p)}
+.ical-ev.sel{border-color:var(--vert);background:#f0fbf4}
+.ical-ev-date{font-size:10px;font-weight:700;color:var(--bleu);white-space:nowrap;width:80px;flex-shrink:0}
+.ical-ev-title{font-size:11px;font-weight:400;color:var(--texte);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ical-ev-dur{font-size:10px;font-weight:600;color:var(--bleu);white-space:nowrap}
+.ical-ev .chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px}
+.ical-ev.sel .chk{background:var(--vert);border-color:var(--vert);color:#fff}
+.ical-import-btn{width:100%;margin-top:8px;padding:8px;background:var(--bleu);color:#fff;border:none;border-radius:7px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif;display:none}
+.ical-import-btn.show{display:block}
+/* numéro auto */
+.fnum-wrap{position:relative}
+.fnum-wrap .auto-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--bleu);color:#fff;border:none;border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700;cursor:pointer;letter-spacing:.04em;font-family:'Montserrat',sans-serif}
+
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff}
+  .header,.sidebar,.form-col,.prev-label{display:none!important}
+  .layout{height:auto}
+  .preview-col{padding:0}
+  .facture{box-shadow:none;border-radius:0;max-width:100%}
+  @page{margin:.5cm;size:A4}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="lw">
+    <span class="ll">Little</span>
+    <div class="lb"><span class="lc">Créatrice</span></div>
+  </div>
+  <div class="hsep"></div>
+  <div class="hsub">Mes Factures</div>
+  <div class="hright">
+    <span class="save-ok" id="saveOk">✓ Sauvegardé</span>
+    <div class="nda">NDA 11931122693</div>
+  </div>
+</div>
+
+<div class="layout">
+
+<!-- ══ SIDEBAR : clients + historique ══ -->
+<div class="sidebar">
+  <div class="sb-section">Clients</div>
+  <div class="client-list" id="clientList"></div>
+  <div class="sb-section" style="margin-top:4px">Historique <span id="histClient" style="font-weight:300;text-transform:none;letter-spacing:0;color:#888"></span></div>
+  <div class="hist-list" id="histList"></div>
+  <button class="new-btn" onclick="newMonth()">＋ Nouveau mois</button>
+</div>
+
+<!-- ══ FORMULAIRE ══ -->
+<div class="form-col">
+  <div class="fc-head">
+    <div class="fc-head-title" id="fcTitle">Facture</div>
+    <div class="month-nav">
+      <button class="mnav-btn" onclick="prevMonth()">‹</button>
+      <div class="mnav-label" id="mnavLabel">—</div>
+      <button class="mnav-btn" onclick="nextMonth()">›</button>
+    </div>
+  </div>
+
+  <div class="fsec">
+    <div class="fsec-title">Informations facture</div>
+    <div class="g2">
+      <div class="frow fnum-wrap"><label>N° Facture</label><input type="text" id="fNum" oninput="autosave()" placeholder="auto"><button class="auto-btn" onclick="genNumAuto()" title="Générer automatiquement">AUTO</button></div>
+      <div class="frow"><label>Date</label><input type="date" id="fDate" oninput="autosave()"></div>
+    </div>
+    <div class="frow"><label>Termes de paiement</label><input type="text" id="fTerms" oninput="autosave()"></div>
+  </div>
+
+  <div class="fsec">
+    <div class="fsec-title">Client</div>
+    <div class="frow"><label>Société</label><input type="text" id="cNom" oninput="autosave()"></div>
+    <div class="frow"><label>Adresse</label><textarea id="cAddr" rows="2" oninput="autosave()"></textarea></div>
+    <div class="g2">
+      <div class="frow"><label>SIRET</label><input type="text" id="cSiret" oninput="autosave()"></div>
+      <div class="frow"><label>Contact</label><input type="text" id="cContact" oninput="autosave()"></div>
+    </div>
+    <div class="frow"><label>Projet / Formation</label><input type="text" id="cProjet" oninput="autosave()"></div>
+    <div class="frow"><label>Description</label><textarea id="cDesc" rows="2" oninput="autosave()"></textarea></div>
+  </div>
+
+  <div class="fsec">
+    <div class="fsec-title">Interventions</div>
+    <div id="interList"></div>
+    <button class="addbtn" onclick="addInter()">＋ Ajouter une intervention</button>
+    <div class="ical-zone" id="icalZone">
+      <div class="ical-title">📅 Importer depuis Apple Calendrier</div>
+      <div class="ical-drop" id="icalDrop" onclick="document.getElementById('icalFile').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropIcal(event)">
+        <input type="file" id="icalFile" accept=".ics" style="display:none" onchange="readIcal(this.files[0])">
+        <div class="ical-icon">📂</div>
+        <div class="ical-hint">Glissez votre fichier <strong>.ics</strong> ou cliquez<br><span>Exporter depuis Calendrier → Fichier → Exporter</span></div>
+      </div>
+      <div class="ical-filter">
+        <label>Filtrer par mot-clé</label>
+        <input type="text" id="icalFilter" placeholder="ex: NDRC, cours, BTS..." value="">
+      </div>
+      <div id="icalEvents"></div>
+    </div>
+  </div>
+
+  <button class="printbtn" onclick="window.print()">🖨 Imprimer / Exporter PDF</button>
+  <button class="delbtn-inv" onclick="deleteCurrentInvoice()">🗑 Supprimer cette facture</button>
+</div>
+
+<!-- ══ PREVIEW ══ -->
+<div class="preview-col">
+  <div class="prev-label">Prévisualisation</div>
+  <div class="facture" id="fPrev"></div>
+</div>
+
+</div><!-- /layout -->
+
+<script>
+const CLIENTS = {
+  affida:    {label:'CFA Affida',    nom:'CFA AFFIDA',                  addr:'Parc des Harmoniques\n06 boulevard Héloïse\n95100 ARGENTEUIL', siret:'412 984 494 00010', contact:'',                       projet:'Cours en présentiel BTS NDRC',          desc:'', terms:'8 jours'},
+  excellence:{label:'Excellence',    nom:'Excellence Academy',           addr:'3 rue des prés\nRoissy en France',                           siret:'82990848200013',    contact:'',                       projet:'Intervenante CS Accueil / BTS GTLA',    desc:'', terms:'8 jours'},
+  rush:      {label:'Rush School',   nom:'Formation Influence – Rush School', addr:'6 Rue des Bateliers\n92110 Clichy',                     siret:'',                  contact:'',                       projet:'Formation BTS NDRC / MCO',             desc:'', terms:'40 jours du prochain mois'},
+  mda:       {label:'MDA',           nom:'MDA Performance',              addr:'10 rue de Penthiévre\n75008 Paris',                          siret:'97967569100013',    contact:'',                       projet:'Formation',                            desc:'', terms:'30 jours'},
+  silk:      {label:'Silk Paris',    nom:'SILK PARIS',                   addr:'13B rue Vernier\n75017 PARIS',                               siret:'',                  contact:'Amadou BA – CEO and Founder', projet:'Community management',             desc:'Gestion du compte Silk Paris sur les réseaux sociaux', terms:'5 Days'},
+  skillup:   {label:'Skill Up',      nom:'SKILL UP',                     addr:'12 rue Galilée\n75116 Paris',                                siret:'93430320700013',    contact:'',                       projet:'Intervention en studio',               desc:'RPMS – Modules CCP', terms:'30 jours'}
+};
+
+const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+let currentClient = 'affida';
+let currentYM = '';  // 'YYYY-MM'
+let inters = [];
+
+/* ── CLÉS LOCALSTORAGE ── */
+function key(client, ym) { return `lc2_${client}_${ym}`; }
+function allKeys(client) {
+  const keys = [];
+  for (let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(`lc2_${client}_`)) keys.push(k);
+  }
+  return keys.sort().reverse();
+}
+
+/* ── SAUVEGARDE ── */
+function autosave() {
+  if (!currentYM) return;
+  const data = {
+    fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
+    cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
+    cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
+    inters
+  };
+  localStorage.setItem(key(currentClient, currentYM), JSON.stringify(data));
+  const el = document.getElementById('saveOk');
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 2000);
+  updatePreview();
+  renderHist();
+}
+
+/* ── CHARGEMENT ── */
+function loadInvoice(client, ym) {
+  currentClient = client;
+  currentYM = ym;
+  const raw = localStorage.getItem(key(client, ym));
+  if (raw) {
+    const d = JSON.parse(raw);
+    set('fNum', d.fNum); set('fDate', d.fDate); set('fTerms', d.fTerms);
+    set('cNom', d.cNom); set('cAddr', d.cAddr); set('cSiret', d.cSiret);
+    set('cContact', d.cContact); set('cProjet', d.cProjet); set('cDesc', d.cDesc);
+    inters = (d.inters||[]).map(i => ({...i, id: Date.now()+Math.random()}));
+  } else {
+    // nouvelle facture : préremplir depuis les infos client
+    const c = CLIENTS[client];
+    set('fNum', ''); set('fDate', firstDayOfMonth(ym)); set('fTerms', c.terms);
+    set('cNom', c.nom); set('cAddr', c.addr); set('cSiret', c.siret);
+    set('cContact', c.contact); set('cProjet', c.projet); set('cDesc', c.desc);
+    inters = [];
+  }
+  renderInters();
+  renderHist();
+  renderClients();
+  updateNavLabel();
+  updatePreview();
+}
+
+function firstDayOfMonth(ym) { return ym + '-01'; }
+
+/* ── NAVIGATION MOIS ── */
+function ymToDate(ym) { const [y,m] = ym.split('-'); return new Date(+y, +m-1, 1); }
+function dateToYM(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+function currentYMLabel(ym) { if(!ym) return '—'; const [y,m] = ym.split('-'); return MOIS[+m-1] + ' ' + y; }
+function updateNavLabel() { document.getElementById('mnavLabel').textContent = currentYMLabel(currentYM); document.getElementById('fcTitle').textContent = CLIENTS[currentClient].label; document.getElementById('histClient').textContent = '— ' + CLIENTS[currentClient].label; }
+function prevMonth() { const d = ymToDate(currentYM); d.setMonth(d.getMonth()-1); loadInvoice(currentClient, dateToYM(d)); }
+function nextMonth() { const d = ymToDate(currentYM); d.setMonth(d.getMonth()+1); loadInvoice(currentClient, dateToYM(d)); }
+function newMonth() { loadInvoice(currentClient, dateToYM(new Date())); }
+
+/* ── CLIENTS (sidebar) ── */
+function renderClients() {
+  const c = document.getElementById('clientList');
+  c.innerHTML = '';
+  Object.entries(CLIENTS).forEach(([k,cl]) => {
+    const count = allKeys(k).length;
+    const div = document.createElement('div');
+    div.className = 'citem' + (k===currentClient?' active':'');
+    div.innerHTML = `<span>${cl.label}</span>${count>0?`<span class="cbadge">${count}</span>`:''}`;
+    div.onclick = () => { const keys = allKeys(k); loadInvoice(k, keys.length ? keys[0].replace(`lc2_${k}_`,'') : dateToYM(new Date())); };
+    c.appendChild(div);
+  });
+}
+
+/* ── HISTORIQUE (sidebar) ── */
+function renderHist() {
+  const c = document.getElementById('histList');
+  c.innerHTML = '';
+  const keys = allKeys(currentClient);
+  if (!keys.length) { c.innerHTML = '<div class="no-hist">Aucune facture</div>'; return; }
+  keys.forEach(k => {
+    const ym = k.replace(`lc2_${currentClient}_`,'');
+    const raw = localStorage.getItem(k);
+    let total = 0, num = '';
+    if (raw) { try { const d=JSON.parse(raw); total=(d.inters||[]).reduce((s,i)=>s+i.h*i.p,0); num=d.fNum||''; } catch(e){} }
+    const div = document.createElement('div');
+    div.className = 'hitem' + (ym===currentYM?' active':'');
+    div.innerHTML = `<div><div class="hdate">${currentYMLabel(ym)}</div>${num?`<div style="font-size:9px;color:#aaa;margin-top:1px">N° ${num}</div>`:''}</div><div class="hamt">${total?fmtEur(total):''}</div>`;
+    div.onclick = () => loadInvoice(currentClient, ym);
+    c.appendChild(div);
+  });
+}
+
+function deleteCurrentInvoice() {
+  if (!confirm(`Supprimer la facture de ${currentYMLabel(currentYM)} ?`)) return;
+  localStorage.removeItem(key(currentClient, currentYM));
+  const keys = allKeys(currentClient);
+  if (keys.length) loadInvoice(currentClient, keys[0].replace(`lc2_${currentClient}_`,''));
+  else loadInvoice(currentClient, dateToYM(new Date()));
+}
+
+/* ── INTERVENTIONS ── */
+function addInter(date='',desc='',h=4,p=50) {
+  inters.push({id:Date.now()+Math.random(), date, desc, h, p});
+  renderInters(); autosave();
+}
+function delInter(id) { inters=inters.filter(i=>i.id!==id); renderInters(); autosave(); }
+function updInter(id,field,val) {
+  const i=inters.find(x=>x.id===id); if(!i) return;
+  i[field]=(field==='h'||field==='p')?parseFloat(val)||0:val;
+  document.querySelector(`[data-id="${id}"] .calc`).textContent = fmtEur(i.h*i.p);
+  autosave();
+}
+function renderInters() {
+  const c=document.getElementById('interList'); c.innerHTML='';
+  inters.forEach(i => {
+    const d=document.createElement('div');
+    d.className='inter-item'; d.dataset.id=i.id;
+    d.innerHTML=`
+      <div class="ii-top">
+        <input class="di" type="date" value="${i.date}" onchange="updInter(${i.id},'date',this.value)">
+        <input class="dsc" type="text" value="${i.desc}" placeholder="Description" onchange="updInter(${i.id},'desc',this.value)">
+        <button class="delbtn" onclick="delInter(${i.id})">✕</button>
+      </div>
+      <div class="ii-bot">
+        <span class="lbl">Heures</span>
+        <input type="number" value="${i.h}" min="0" step="0.5" onchange="updInter(${i.id},'h',this.value)">
+        <span class="lbl">€/h</span>
+        <input type="number" value="${i.p}" min="0" onchange="updInter(${i.id},'p',this.value)">
+        <div class="calc">${fmtEur(i.h*i.p)}</div>
+      </div>`;
+    c.appendChild(d);
+  });
+}
+
+/* ── FORMAT ── */
+function v(id){return document.getElementById(id)?.value||''}
+function set(id,val){const el=document.getElementById(id);if(el&&val!==undefined)el.value=val}
+function fmtDate(d){if(!d)return'—';const[y,m,j]=d.split('-');return`${j} ${MOIS[+m-1].slice(0,3)} ${y}`}
+function fmtEur(n){return(parseFloat(n)||0).toFixed(2).replace('.',',')+' €'}
+
+/* ── PREVIEW ── */
+function updatePreview() {
+  const num=v('fNum'),date=v('fDate'),terms=v('fTerms');
+  const nom=v('cNom')||'Client',addr=v('cAddr'),siret=v('cSiret');
+  const contact=v('cContact'),projet=v('cProjet'),desc=v('cDesc');
+  let rows='',totalH=0,totalM=0;
+  inters.forEach(i=>{
+    const m=i.h*i.p; totalH+=i.h; totalM+=m;
+    rows+=`<tr><td class="b">${fmtDate(i.date)}</td><td>${i.desc||'—'}</td><td class="r">${i.h}h</td><td class="r">${fmtEur(i.p)}</td><td class="r">${fmtEur(m)}</td></tr>`;
+  });
+  const ah=addr.replace(/\n/g,'<br>');
+  document.getElementById('fPrev').innerHTML=`
+    <div class="fac-band">
+      <div style="display:flex;align-items:center">
+        <span class="fac-ll">Little</span>
+        <div class="fac-lb"><span class="fac-lc">Créatrice</span></div>
+      </div>
+      <div class="fac-br">
+        <strong>Noura Fassih</strong>
+        6 rue James Watt — 93200 Saint Denis<br>
+        SIRET 89129199900029 &nbsp;·&nbsp; NDA 11931122693<br>
+        nora@littlecreatrice.com
+      </div>
+    </div>
+    <div class="fac-body">
+      <div class="fac-top">
+        <div><div class="fac-mot">Facture</div><div class="fac-num">N° ${num||'—'}</div></div>
+        <div class="fac-dr"><strong>Date :</strong> ${fmtDate(date)}<br>${terms?`<strong>Règlement :</strong> ${terms}`:''}</div>
+      </div>
+      <div class="fdiv"></div>
+      <div class="f2c">
+        <div><div class="fcl">Facturé à</div><div class="fcv"><strong>${nom}</strong><br>${ah}${siret?`<br><strong>SIRET :</strong> ${siret}`:''}${contact?`<br>${contact}`:''}</div></div>
+        <div><div class="fcl">Prestation</div><div class="fcv">${projet?`<strong>${projet}</strong><br>`:''}${desc?desc.replace(/\n/g,'<br>'):'&nbsp;'}</div></div>
+      </div>
+      ${projet||desc?`<div class="fdesc"><strong>Description</strong>${projet}${desc?' — '+desc:''}</div>`:''}
+      <table class="ft">
+        <thead><tr><th>Date</th><th>Description</th><th class="r">Heures</th><th class="r">Tarif/h</th><th class="r">Total</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:#ccc;padding:16px;font-weight:300;">Aucune intervention</td></tr>'}</tbody>
+      </table>
+      <div class="totw"><div class="totbox">
+        <div class="trow"><span>Total heures</span><span>${totalH}h</span></div>
+        <div class="trow"><span>Sous-total</span><span>${fmtEur(totalM)}</span></div>
+        <div class="trow tot"><span>Total TTC</span><span>${fmtEur(totalM)}</span></div>
+      </div></div>
+      <div class="fsign">Merci de votre confiance,<br>Bien cordialement,<br><br><strong>Noura Fassih</strong></div>
+      <div class="frib">
+        <div class="frib-t">Coordonnées bancaires — Virement souhaité</div>
+        <div class="frib-g">
+          <div class="frib-r"><span class="frib-l">Bénéficiaire :</span><span class="frib-v">Noura FASSIH</span></div>
+          <div class="frib-r"><span class="frib-l">Banque :</span><span class="frib-v">Revolut Bank UAB — 10 avenue Kléber, 75116 Paris</span></div>
+          <div class="frib-r"><span class="frib-l">IBAN :</span><span class="frib-v">FR76 2823 3000 0100 0700 5276 886</span></div>
+          <div class="frib-r"><span class="frib-l">BIC / SWIFT :</span><span class="frib-v">REVOFRP2</span></div>
+          <div class="frib-r"><span class="frib-l">BIC Correspondant :</span><span class="frib-v">CHASDEFX</span></div>
+        </div>
+      </div>
+      <div class="ftva">TVA non applicable — article 293 B du CGI<br>Déclaration d'activité enregistrée sous le numéro 11931122693 auprès du préfet de la région d'Île-de-France.</div>
+    </div>`;
+}
+
+
+/* ── NUMÉRO AUTO ── */
+function genNumAuto() {
+  const mm = currentYM ? currentYM.split('-')[1] : String(new Date().getMonth()+1).padStart(2,'0');
+  // compter toutes les factures de ce mois tous clients confondus
+  let count = 0;
+  for (let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('lc2_') && k.includes('_'+currentYM)) count++;
+  }
+  // incrémenter si la facture courante est déjà sauvegardée
+  const existing = localStorage.getItem(key(currentClient, currentYM));
+  const alreadySaved = existing && JSON.parse(existing).fNum;
+  if (alreadySaved) { set('fNum', alreadySaved); autosave(); return; }
+  count++;
+  const num = mm + '/' + String(count).padStart(3,'0');
+  set('fNum', num);
+  autosave();
+}
+
+/* ── ICAL PARSING ── */
+let icalEventsAll = [];
+let icalSelected = new Set();
+
+function dropIcal(e) {
+  e.preventDefault();
+  document.getElementById('icalDrop').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) readIcal(file);
+}
+
+function readIcal(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => parseIcal(e.target.result);
+  reader.readAsText(file);
+}
+
+function parseIcal(text) {
+  icalEventsAll = [];
+  icalSelected.clear();
+  const lines = text.replace(/\r/g,'').split('\n');
+  let inEvent = false, ev = {};
+  lines.forEach(line => {
+    if (line === 'BEGIN:VEVENT') { inEvent=true; ev={}; }
+    else if (line === 'END:VEVENT') {
+      if (inEvent && ev.start && ev.summary) icalEventsAll.push(ev);
+      inEvent=false; ev={};
+    } else if (inEvent) {
+      if (line.startsWith('SUMMARY:')) ev.summary = line.slice(8).trim();
+      else if (line.startsWith('DTSTART')) {
+        const val = line.split(':').pop().trim();
+        ev.start = parseIcalDate(val);
+        ev.startRaw = val;
+      }
+      else if (line.startsWith('DTEND')) {
+        const val = line.split(':').pop().trim();
+        ev.end = parseIcalDate(val);
+        ev.duration = ev.start && ev.end ? Math.round((ev.end-ev.start)/3600000) : 0;
+      }
+      else if (line.startsWith('DESCRIPTION:')) ev.desc = line.slice(12).trim();
+    }
+  });
+  // trier par date
+  icalEventsAll.sort((a,b) => a.start - b.start);
+  renderIcalEvents();
+}
+
+function parseIcalDate(s) {
+  s = s.replace(/[TZ]/g,' ').trim();
+  if (s.length >= 8) {
+    const y=s.slice(0,4), m=s.slice(4,6), d=s.slice(6,8);
+    return new Date(+y, +m-1, +d);
+  }
+  return null;
+}
+
+function filterAndRender() { renderIcalEvents(); }
+
+function renderIcalEvents() {
+  const filter = (document.getElementById('icalFilter')?.value||'').toLowerCase();
+  const container = document.getElementById('icalEvents');
+  if (!icalEventsAll.length) { container.innerHTML=''; return; }
+  // filtrer par mois courant + mot-clé
+  const [cy, cm] = currentYM ? currentYM.split('-') : ['',''];
+  let evs = icalEventsAll.filter(ev => {
+    if (!ev.start) return false;
+    const sameMonth = !cm || (ev.start.getMonth()+1 === +cm && ev.start.getFullYear() === +cy);
+    const matchKw = !filter || ev.summary.toLowerCase().includes(filter);
+    return sameMonth && matchKw;
+  });
+  if (!evs.length) {
+    container.innerHTML = '<div style="font-size:11px;color:#aaa;text-align:center;padding:8px;font-weight:300;">Aucun événement ce mois-ci</div>';
+    document.getElementById('icalImportBtn')?.classList.remove('show');
+    return;
+  }
+  const list = document.createElement('div');
+  list.className = 'ical-events-list';
+  evs.forEach((ev,idx) => {
+    const id = idx;
+    const div = document.createElement('div');
+    const sel = icalSelected.has(id);
+    div.className = 'ical-ev' + (sel?' sel':'');
+    div.dataset.idx = id;
+    const dur = ev.duration > 0 ? ev.duration+'h' : '?';
+    const dateStr = ev.start ? ev.start.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}) : '—';
+    div.innerHTML = `
+      <div class="chk">${sel?'✓':''}</div>
+      <div class="ical-ev-date">${dateStr}</div>
+      <div class="ical-ev-title">${ev.summary}</div>
+      <div class="ical-ev-dur">${dur}</div>`;
+    div.onclick = () => {
+      if (icalSelected.has(id)) icalSelected.delete(id); else icalSelected.add(id);
+      renderIcalEvents();
+      const btn = document.getElementById('icalImportBtn');
+      if (btn) btn.className = 'ical-import-btn' + (icalSelected.size>0?' show':'');
+    };
+    list.appendChild(div);
+  });
+  container.innerHTML = '';
+  container.appendChild(list);
+  // bouton importer
+  let btn = document.getElementById('icalImportBtn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'icalImportBtn';
+    btn.className = 'ical-import-btn' + (icalSelected.size>0?' show':'');
+    btn.textContent = '✓ Importer les événements sélectionnés';
+    btn.onclick = importSelectedEvents;
+    container.appendChild(btn);
+  } else {
+    btn.className = 'ical-import-btn' + (icalSelected.size>0?' show':'');
+    container.appendChild(btn);
+  }
+}
+
+function importSelectedEvents() {
+  const filter = (document.getElementById('icalFilter')?.value||'').toLowerCase();
+  const [cy, cm] = currentYM ? currentYM.split('-') : ['',''];
+  let evs = icalEventsAll.filter(ev => {
+    if (!ev.start) return false;
+    const sameMonth = !cm || (ev.start.getMonth()+1 === +cm && ev.start.getFullYear() === +cy);
+    const matchKw = !filter || ev.summary.toLowerCase().includes(filter);
+    return sameMonth && matchKw;
+  });
+  icalSelected.forEach(idx => {
+    const ev = evs[idx];
+    if (!ev) return;
+    const d = ev.start;
+    const dateStr = d ? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') : '';
+    const h = ev.duration > 0 ? ev.duration : 4;
+    addInter(dateStr, ev.summary, h, 50);
+  });
+  icalSelected.clear();
+  renderIcalEvents();
+}
+
+/* ── INIT ── */
+const todayYM = dateToYM(new Date());
+renderClients();
+// charger le dernier client/mois actif ou mois courant
+const lastActive = localStorage.getItem('lc2_last');
+if (lastActive) {
+  try { const {c,ym}=JSON.parse(lastActive); loadInvoice(c,ym); }
+  catch(e){ loadInvoice('affida', todayYM); }
+} else { loadInvoice('affida', todayYM); }
+// sauvegarder le dernier actif à chaque changement
+setInterval(() => localStorage.setItem('lc2_last', JSON.stringify({c:currentClient,ym:currentYM})), 2000);
+// filtre ical live
+document.getElementById('icalFilter')?.addEventListener('input', filterAndRender);
+// auto-numéro au chargement si vide
+setTimeout(() => { if (!v('fNum')) genNumAuto(); }, 300);
+</script>
+</body>
+</html>

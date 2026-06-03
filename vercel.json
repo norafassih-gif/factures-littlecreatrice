@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/", "dest": "/facture_generator_v6.html" },
+    { "src": "/(.*)", "dest": "/facture_generator_v6.html" }
+  ]
+}
