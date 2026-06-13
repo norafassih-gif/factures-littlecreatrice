@@ -780,17 +780,13 @@ function updatePreview() {
 
 /* ── NUMÉRO AUTO ── */
 async function genNumAuto() {
-  const mm = currentYM ? currentYM.split('-')[1] : String(new Date().getMonth()+1).padStart(2,'0');
-  const existing = await dbGet(currentClient, currentYM);
-  if (existing && existing.fNum) { set('fNum', existing.fNum); return; }
-  // Compter les factures du mois pour tous les clients
-  let count = 0;
-  for (const clientKey of Object.keys(CLIENTS)) {
-    const months = await dbList(clientKey);
-    if (months.includes(currentYM)) count++;
-  }
-  count++;
-  const num = mm + '/' + String(count).padStart(3,'0');
+  if (!currentYM) return;
+  const mm = currentYM.split('-')[1];
+  // Compteur global persistant pour ce mois (toutes factures, tous clients)
+  const counterData = await dbGet('_counter', currentYM);
+  const next = (counterData && counterData.n) ? counterData.n + 1 : 1;
+  await dbSet('_counter', currentYM, { n: next });
+  const num = mm + '/' + String(next).padStart(3,'0');
   set('fNum', num);
   autosave();
 }
