@@ -425,9 +425,9 @@ async function loadInvoice(client, ym) {
   }
   renderInters();
   renderClients();
-  await renderHist();
   updateNavLabel();
-  updatePreview();
+  updatePreview();  // appel immédiat pour afficher la preview
+  renderHist();     // async en arrière-plan (historique)
 }
 
 function firstDayOfMonth(ym) { const today = new Date(); const [y,m] = ym.split('-'); if(+y===today.getFullYear()&&+m===today.getMonth()+1) return today.toISOString().split('T')[0]; return ym+'-01'; }
@@ -492,14 +492,28 @@ async function newMonth() { const ym = dateToYM(new Date()); currentYM = ym; awa
 /* ── CLIENTS (sidebar) ── */
 function renderClients() {
   const c = document.getElementById('clientList');
+  if (!c) return;
   c.innerHTML = '';
   Object.entries(CLIENTS).forEach(([k,cl]) => {
-    const count = 0; // mis à jour async
     const div = document.createElement('div');
     div.className = 'citem' + (k===currentClient?' active':'');
-    div.innerHTML = `<span>${cl.label}</span>${count>0?`<span class="cbadge">${count}</span>`:''}`;
-    div.onclick = async () => { const keys = await dbList(k); loadInvoice(k, keys.length ? keys[0] : dateToYM(new Date())); };
+    div.innerHTML = `<span>${cl.label}</span>`;
+    div.onclick = async () => {
+      // Marquer actif immédiatement
+      document.querySelectorAll('.citem').forEach(el => el.classList.remove('active'));
+      div.classList.add('active');
+      const keys = await dbList(k);
+      await loadInvoice(k, keys.length ? keys[0] : dateToYM(new Date()));
+    };
     c.appendChild(div);
+    // Badge async
+    dbList(k).then(keys => {
+      const badge = div.querySelector('.cbadge');
+      if (keys.length > 0) {
+        if (!badge) div.innerHTML += `<span class="cbadge">${keys.length}</span>`;
+        else badge.textContent = keys.length;
+      }
+    });
   });
 }
 
@@ -789,6 +803,28 @@ function parseIcalDate(s) {
   return null;
 }
 
+function getFilteredIcalEvents() {
+  const filter = (document.getElementById('icalFilter')?.value||'').toLowerCase();
+  const dateFrom = document.getElementById('icalDateFrom')?.value || '';
+  const dateTo   = document.getElementById('icalDateTo')?.value   || '';
+  const dFrom = dateFrom ? new Date(dateFrom+'T00:00:00') : null;
+  const dTo   = dateTo   ? new Date(dateTo+'T23:59:59') : null;
+  const result = [];
+  icalEventsAll.forEach((ev, realIdx) => {
+    if (!ev.start) return;
+    const matchKw = !filter || ev.summary.toLowerCase().includes(filter) || (ev.desc||'').toLowerCase().includes(filter);
+    const afterFrom = !dFrom || ev.start >= dFrom;
+    const beforeTo  = !dTo   || ev.start <= dTo;
+    if (matchKw && afterFrom && beforeTo) result.push({ev, realIdx});
+  });
+  return result;
+}
+
+function defaultTarif() {
+  const presets = PRESETS[currentClient];
+  return presets && presets[0] ? presets[0].tarif : 50;
+}
+
 function filterAndRender() { renderIcalEvents(); }
 function clearIcalDates() {
   const f = document.getElementById('icalDateFrom');
@@ -798,19 +834,9 @@ function clearIcalDates() {
 }
 
 function toggleSelAll(checked) {
-  const filter = (document.getElementById('icalFilter')?.value||'').toLowerCase();
-  const dateFrom2 = document.getElementById('icalDateFrom')?.value || '';
-  const dateTo2   = document.getElementById('icalDateTo')?.value   || '';
-  const dFrom2 = dateFrom2 ? new Date(dateFrom2) : null;
-  const dTo2   = dateTo2   ? new Date(dateTo2 + 'T23:59:59') : null;
-  icalEventsAll.forEach((ev, idx) => {
-    if (!ev.start) return;
-    const matchKw = !filter || ev.summary.toLowerCase().includes(filter);
-    const afterFrom = !dFrom2 || ev.start >= dFrom2;
-    const beforeTo  = !dTo2   || ev.start <= dTo2;
-    if (matchKw && afterFrom && beforeTo) {
-      if (checked) icalSelected.add(idx); else icalSelected.delete(idx);
-    }
+  const filtered = getFilteredIcalEvents();
+  filtered.forEach(({realIdx}) => {
+    if (checked) icalSelected.add(realIdx); else icalSelected.delete(realIdx);
   });
   renderIcalEvents();
   const btn = document.getElementById('icalImportBtn');
@@ -818,34 +844,26 @@ function toggleSelAll(checked) {
 }
 
 function renderIcalEvents() {
-  const filter = (document.getElementById('icalFilter')?.value||'').toLowerCase();
   const container = document.getElementById('icalEvents');
   if (!icalEventsAll.length) { container.innerHTML=''; return; }
-  // Filtre par plage de dates
-  const dateFrom = document.getElementById('icalDateFrom')?.value || '';
-  const dateTo   = document.getElementById('icalDateTo')?.value   || '';
-  const dFrom = dateFrom ? new Date(dateFrom) : null;
-  const dTo   = dateTo   ? new Date(dateTo + 'T23:59:59') : null;
-  let evs = icalEventsAll.filter(ev => {
-    if (!ev.start) return false;
-    const matchKw = !filter || ev.summary.toLowerCase().includes(filter) || (ev.desc||'').toLowerCase().includes(filter);
-    const afterFrom = !dFrom || ev.start >= dFrom;
-    const beforeTo  = !dTo   || ev.start <= dTo;
-    return matchKw && afterFrom && beforeTo;
-  });
-  if (!evs.length) {
-    container.innerHTML = '<div style="font-size:11px;color:#aaa;text-align:center;padding:8px;font-weight:300;">Aucun événement ce mois-ci</div>';
+
+  // Préserver le scroll
+  const oldList = container.querySelector('.ical-events-list');
+  const scrollPos = oldList ? oldList.scrollTop : 0;
+
+  const filtered = getFilteredIcalEvents();
+  if (!filtered.length) {
+    container.innerHTML = '<div style="font-size:11px;color:#aaa;text-align:center;padding:8px;font-weight:300;">Aucun événement dans cette période</div>';
     document.getElementById('icalImportBtn')?.classList.remove('show');
     return;
   }
+
   const list = document.createElement('div');
   list.className = 'ical-events-list';
-  evs.forEach((ev,idx) => {
-    const id = idx;
+  filtered.forEach(({ev, realIdx}) => {
     const div = document.createElement('div');
-    const sel = icalSelected.has(id);
+    const sel = icalSelected.has(realIdx);
     div.className = 'ical-ev' + (sel?' sel':'');
-    div.dataset.idx = id;
     const dur = ev.duration > 0 ? ev.duration+'h' : '?';
     const dateStr = ev.start ? ev.start.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}) : '—';
     div.innerHTML = `
@@ -854,49 +872,55 @@ function renderIcalEvents() {
       <div class="ical-ev-title">${ev.summary}</div>
       <div class="ical-ev-dur">${dur}</div>`;
     div.onclick = () => {
-      if (icalSelected.has(id)) icalSelected.delete(id); else icalSelected.add(id);
+      if (icalSelected.has(realIdx)) icalSelected.delete(realIdx); else icalSelected.add(realIdx);
       renderIcalEvents();
       const btn = document.getElementById('icalImportBtn');
       if (btn) btn.className = 'ical-import-btn' + (icalSelected.size>0?' show':'');
     };
     list.appendChild(div);
   });
+
   container.innerHTML = '';
   container.appendChild(list);
-  // bouton importer
+  list.scrollTop = scrollPos;
+
   let btn = document.getElementById('icalImportBtn');
   if (!btn) {
     btn = document.createElement('button');
     btn.id = 'icalImportBtn';
-    btn.className = 'ical-import-btn' + (icalSelected.size>0?' show':'');
-    btn.textContent = '✓ Importer les événements sélectionnés';
     btn.onclick = importSelectedEvents;
-    container.appendChild(btn);
-  } else {
-    btn.className = 'ical-import-btn' + (icalSelected.size>0?' show':'');
-    container.appendChild(btn);
   }
+  btn.className = 'ical-import-btn' + (icalSelected.size>0?' show':'');
+  btn.textContent = `✓ Importer ${icalSelected.size>0?'('+icalSelected.size+') ':''}— grouper par jour`;
+  container.appendChild(btn);
 }
 
 function importSelectedEvents() {
-  const filter = (document.getElementById('icalFilter')?.value||'').toLowerCase();
-  const [cy, cm] = currentYM ? currentYM.split('-') : ['',''];
-  let evs = icalEventsAll.filter(ev => {
-    if (!ev.start) return false;
-    const matchKw = !filter || ev.summary.toLowerCase().includes(filter) || (ev.desc||'').toLowerCase().includes(filter);
-    const sameMonth = !cm || (ev.start.getMonth()+1 === +cm && ev.start.getFullYear() === +cy);
-    return matchKw;
-  });
   const defaultH = parseFloat(document.getElementById('icalDefaultH')?.value||'0') || 0;
-  const allEvs = icalEventsAll;
-  icalSelected.forEach(idx => {
-    const ev = allEvs[idx];
-    if (!ev) return;
+  const tarif = defaultTarif();
+
+  // Grouper par date
+  const byDate = {}; // dateStr -> {titles:Set, totalH}
+  icalSelected.forEach(realIdx => {
+    const ev = icalEventsAll[realIdx];
+    if (!ev || !ev.start) return;
     const d = ev.start;
-    const dateStr = d ? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') : '';
+    const dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const heures = defaultH > 0 ? defaultH : (ev.duration > 0 ? ev.duration : 2);
-    addInter(dateStr, ev.summary, heures, 50);
+    if (!byDate[dateStr]) byDate[dateStr] = { titles: [], totalH: 0 };
+    byDate[dateStr].titles.push(ev.summary);
+    byDate[dateStr].totalH += heures;
   });
+
+  // Créer une intervention par date, triée
+  Object.keys(byDate).sort().forEach(dateStr => {
+    const { titles, totalH } = byDate[dateStr];
+    // Dédupliquer les titres
+    const uniqueTitles = [...new Set(titles)];
+    const desc = uniqueTitles.join(' + ');
+    addInter(dateStr, desc, totalH, tarif);
+  });
+
   icalSelected.clear();
   renderIcalEvents();
 }
@@ -948,7 +972,7 @@ async function initLoad() {
     try { const {c,ym}=JSON.parse(lastActive); await loadInvoice(c,ym); }
     catch(e){ await loadInvoice('affida', todayYM); }
   } else { await loadInvoice('affida', todayYM); }
-  updatePreview(); // forcer après chargement complet
+  updatePreview();
 }
 initLoad();
 // mémoriser le dernier actif dans la session
