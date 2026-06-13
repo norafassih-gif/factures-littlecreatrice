@@ -502,6 +502,7 @@ async function loadInvoice(client, ym) {
   }
   renderForfaits();
   setMode(invoiceMode, true);
+  if (!v('fNum')) await genNumAuto();
   renderInters();
   renderClients();
   updateNavLabel();
@@ -509,7 +510,7 @@ async function loadInvoice(client, ym) {
   renderHist();     // async en arrière-plan (historique)
 }
 
-function firstDayOfMonth(ym) { const today = new Date(); const [y,m] = ym.split('-'); if(+y===today.getFullYear()&&+m===today.getMonth()+1) return today.toISOString().split('T')[0]; return ym+'-01'; }
+function firstDayOfMonth(ym) { return new Date().toISOString().split('T')[0]; }
 
 /* ── NAVIGATION MOIS ── */
 function ymToDate(ym) { const [y,m] = ym.split('-'); return new Date(+y, +m-1, 1); }
