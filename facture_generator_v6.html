@@ -176,6 +176,17 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
 .fnum-wrap{position:relative}
 .fnum-wrap .auto-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--bleu);color:#fff;border:none;border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700;cursor:pointer;letter-spacing:.04em;font-family:'Montserrat',sans-serif}
 
+
+/* ══ MODE FORFAIT ══ */
+.mode-toggle{display:flex;gap:0;margin-bottom:12px;border:1.5px solid var(--border);border-radius:7px;overflow:hidden}
+.mode-btn{flex:1;padding:8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;background:#fff;color:var(--doux);border:none;font-family:'Montserrat',sans-serif;transition:.15s}
+.mode-btn.active{background:var(--bleu);color:#fff}
+.mode-btn:not(.active):hover{background:var(--bleu-p)}
+.forfait-item{background:var(--bleu-p);border:1px solid var(--bleu-c);border-radius:8px;padding:10px 11px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.forfait-item input.fdsc{flex:1;font-size:12px;font-family:'Montserrat',sans-serif;border:1.5px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--texte);background:#fff;outline:none}
+.forfait-item input.fmnt{width:100px;font-size:12px;font-weight:600;font-family:'Montserrat',sans-serif;border:1.5px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--texte);background:#fff;outline:none;text-align:right}
+.forfait-item input:focus{border-color:var(--bleu)}
+
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{background:#fff}
@@ -250,6 +261,14 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   </div>
 
   <div class="fsec">
+    <div class="fsec-title">Type de facturation</div>
+    <div class="mode-toggle">
+      <button class="mode-btn" id="modeHoraireBtn" onclick="setMode('horaire',false)">⏱ Horaire</button>
+      <button class="mode-btn" id="modeForfaitBtn" onclick="setMode('forfait',false)">📦 Forfait</button>
+    </div>
+  </div>
+
+  <div class="fsec" id="horaireSection">
     <div class="fsec-title">Interventions</div>
     <div id="interList"></div>
     <button class="addbtn" onclick="addInter()">＋ Ajouter une intervention</button>
@@ -287,6 +306,12 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
     </div>
   </div>
 
+  <div class="fsec" id="forfaitSection" style="display:none">
+    <div class="fsec-title">Lignes de facturation (forfait)</div>
+    <div id="forfaitList"></div>
+    <button class="addbtn" onclick="addForfait()">＋ Ajouter une ligne</button>
+  </div>
+
   <button class="clearbtn" onclick="clearForm()">✦ Nouvelle facture vide</button>
   <button class="newbtn" onclick="clearForm()">＋ Nouvelle facture vierge</button>
   <button class="savebtn" id="saveBtn" onclick="manualsave()">💾 Sauvegarder</button>
@@ -308,8 +333,11 @@ const CLIENTS = {
   excellence:{label:'Excellence',    nom:'Excellence Academy',           addr:'3 rue des prés\nRoissy en France',                           siret:'82990848200013',    contact:'',                       projet:'Intervenante CS Accueil / BTS GTLA',    desc:'', terms:'8 jours'},
   rush:      {label:'Rush School',   nom:'Formation Influence – Rush School', addr:'6 Rue des Bateliers\n92110 Clichy',                     siret:'',                  contact:'',                       projet:'Formation BTS NDRC / MCO',             desc:'', terms:'40 jours du prochain mois'},
   mda:       {label:'MDA',           nom:'MDA Performance',              addr:'10 rue de Penthiévre\n75008 Paris',                          siret:'97967569100013',    contact:'',                       projet:'Formation',                            desc:'', terms:'30 jours'},
-  silk:      {label:'Silk Paris',    nom:'SILK PARIS',                   addr:'13B rue Vernier\n75017 PARIS',                               siret:'',                  contact:'Amadou BA – CEO and Founder', projet:'Community management',             desc:'Gestion du compte Silk Paris sur les réseaux sociaux', terms:'5 Days'},
-  skillup:   {label:'Skill Up',      nom:'SKILL UP',                     addr:'12 rue Galilée\n75116 Paris',                                siret:'93430320700013',    contact:'',                       projet:'Intervention en studio',               desc:'RPMS – Modules CCP', terms:'30 jours'}
+  silk:      {label:'Silk Paris',    nom:'SILK PARIS',                   addr:'13B rue Vernier\n75017 PARIS',                               siret:'',                  contact:'Amadou BA – CEO and Founder', projet:'Community management',             desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait'},
+  skillup:   {label:'Skill Up',      nom:'SKILL UP',                     addr:'12 rue Galilée\n75116 Paris',                                siret:'93430320700013',    contact:'',                       projet:'Intervention en studio',               desc:'RPMS – Modules CCP', terms:'30 jours', mode:'horaire'},
+  wagram:    {label:'Prince Wagram',  nom:'Prince Wagram',                 addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait'},
+  terzo:     {label:'Terzo Ristorante', nom:'Terzo Ristorante',           addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait'},
+  lyna:      {label:'Lyna Ristorante', nom:'Lyna Ristorante',             addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait'}
 };
 
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -382,6 +410,51 @@ async function dbDelete(client, ym) {
   }
 }
 
+
+let invoiceMode = 'horaire'; // 'horaire' ou 'forfait'
+let forfaits = []; // [{id, desc, montant}]
+let _forfaitIdCounter = 1;
+
+function setMode(mode, silent=false) {
+  invoiceMode = mode;
+  document.getElementById('horaireSection').style.display = mode==='horaire' ? '' : 'none';
+  document.getElementById('forfaitSection').style.display = mode==='forfait' ? '' : 'none';
+  document.getElementById('modeHoraireBtn').classList.toggle('active', mode==='horaire');
+  document.getElementById('modeForfaitBtn').classList.toggle('active', mode==='forfait');
+  if (!silent) autosave();
+}
+
+function addForfait(desc='', montant=0) {
+  forfaits.push({id:_forfaitIdCounter++, desc, montant});
+  renderForfaits();
+  autosave();
+}
+function delForfait(id) { forfaits = forfaits.filter(f=>+f.id!==+id); renderForfaits(); autosave(); }
+
+function renderForfaits() {
+  const c = document.getElementById('forfaitList');
+  if (!c) return;
+  c.innerHTML = '';
+  forfaits.forEach(f => {
+    const thisId = f.id;
+    const wrap = document.createElement('div');
+    wrap.className = 'forfait-item';
+    const ds = document.createElement('input');
+    ds.className='fdsc'; ds.type='text'; ds.placeholder='Description (ex: Gestion réseaux sociaux — Juin 2026)'; ds.value=f.desc;
+    ds.onchange = () => { f.desc = ds.value; autosave(); };
+    const mt = document.createElement('input');
+    mt.className='fmnt'; mt.type='number'; mt.placeholder='Montant'; mt.step='0.01'; mt.value=f.montant;
+    mt.onchange = () => { f.montant = parseFloat(mt.value)||0; autosave(); };
+    const lbl = document.createElement('span');
+    lbl.style.cssText='font-size:10px;font-weight:700;color:var(--bleu)'; lbl.textContent='€';
+    const del = document.createElement('button');
+    del.className='delbtn'; del.title='Supprimer'; del.innerHTML='&#10005;'; del.style.color='#e03030'; del.type='button';
+    del.onclick = () => delForfait(thisId);
+    wrap.append(ds, mt, lbl, del);
+    c.appendChild(wrap);
+  });
+}
+
 /* ── SAUVEGARDE ── */
 let saveTimer = null;
 function autosave() {
@@ -393,7 +466,7 @@ function autosave() {
       fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
       cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
       cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
-      inters
+      inters, mode:invoiceMode, forfaits
     };
     await dbSet(currentClient, currentYM, data);
     const el = document.getElementById('saveOk');
@@ -416,13 +489,19 @@ async function loadInvoice(client, ym) {
     set('cNom', d.cNom); set('cAddr', d.cAddr); set('cSiret', d.cSiret);
     set('cContact', d.cContact); set('cProjet', d.cProjet); set('cDesc', d.cDesc);
     inters = (d.inters||[]).map(i => ({...i, id: _interIdCounter++}));
+    forfaits = (d.forfaits||[]).map(f => ({...f, id: _forfaitIdCounter++}));
+    invoiceMode = d.mode || (CLIENTS[client].mode || 'horaire');
   } else {
     const c = CLIENTS[client];
     set('fNum', ''); set('fDate', firstDayOfMonth(ym)); set('fTerms', c.terms);
     set('cNom', c.nom); set('cAddr', c.addr); set('cSiret', c.siret);
     set('cContact', c.contact); set('cProjet', c.projet); set('cDesc', c.desc);
     inters = [];
+    forfaits = (c.mode === 'forfait') ? [{id:_forfaitIdCounter++, desc:c.desc||'Forfait mensuel', montant:0}] : [];
+    invoiceMode = c.mode || 'horaire';
   }
+  renderForfaits();
+  setMode(invoiceMode, true);
   renderInters();
   renderClients();
   updateNavLabel();
@@ -518,22 +597,30 @@ function renderClients() {
 }
 
 /* ── HISTORIQUE (sidebar) ── */
-function renderHist() {
+async function renderHist() {
   const c = document.getElementById('histList');
+  if (!c) return;
+  c.innerHTML = '<div class="no-hist" style="font-size:10px;color:#aaa;padding:8px;">Chargement…</div>';
+  const keys = await dbList(currentClient);
   c.innerHTML = '';
-  const keys = allKeys(currentClient);
-  if (!keys.length) { c.innerHTML = '<div class="no-hist">Aucune facture</div>'; return; }
-  keys.forEach(k => {
-    const ym = k; // déjà le format YYYY-MM
-    const raw = localStorage.getItem(k);
+  if (!keys.length) { c.innerHTML = '<div class="no-hist">Aucune facture sauvegardée</div>'; return; }
+  for (const ym of keys) {
+    const data = await dbGet(currentClient, ym);
     let total = 0, num = '';
-    if (raw) { try { const d=JSON.parse(raw); total=(d.inters||[]).reduce((s,i)=>s+i.h*i.p,0); num=d.fNum||''; } catch(e){} }
+    if (data) {
+      if ((data.mode||'horaire') === 'forfait') {
+        total = (data.forfaits||[]).reduce((s,f)=>s+(f.montant||0),0);
+      } else {
+        total = (data.inters||[]).reduce((s,i)=>s+(i.h*i.p),0);
+      }
+      num = data.fNum||'';
+    }
     const div = document.createElement('div');
     div.className = 'hitem' + (ym===currentYM?' active':'');
     div.innerHTML = `<div><div class="hdate">${currentYMLabel(ym)}</div>${num?`<div style="font-size:9px;color:#aaa;margin-top:1px">N° ${num}</div>`:''}</div><div class="hamt">${total?fmtEur(total):''}</div>`;
     div.onclick = () => loadInvoice(currentClient, ym);
     c.appendChild(div);
-  });
+  }
 }
 
 async function deleteCurrentInvoice() {
@@ -627,10 +714,17 @@ function updatePreview() {
   const nom=v('cNom')||'Client',addr=v('cAddr'),siret=v('cSiret');
   const contact=v('cContact'),projet=v('cProjet'),desc=v('cDesc');
   let rows='',totalH=0,totalM=0;
-  inters.forEach(i=>{
-    const m=i.h*i.p; totalH+=i.h; totalM+=m;
-    rows+=`<tr><td class="b">${fmtDate(i.date)}</td><td>${i.desc||'—'}</td><td class="r">${i.h}h</td><td class="r">${fmtEur(i.p)}</td><td class="r">${fmtEur(m)}</td></tr>`;
-  });
+  if (invoiceMode === 'forfait') {
+    forfaits.forEach(f=>{
+      totalM += f.montant;
+      rows+=`<tr><td class="b" colspan="4">${f.desc||'—'}</td><td class="r">${fmtEur(f.montant)}</td></tr>`;
+    });
+  } else {
+    inters.forEach(i=>{
+      const m=i.h*i.p; totalH+=i.h; totalM+=m;
+      rows+=`<tr><td class="b">${fmtDate(i.date)}</td><td>${i.desc||'—'}</td><td class="r">${i.h}h</td><td class="r">${fmtEur(i.p)}</td><td class="r">${fmtEur(m)}</td></tr>`;
+    });
+  }
   const ah=addr.replace(/\n/g,'<br>');
   document.getElementById('fPrev').innerHTML=`
     <div class="fac-band">
@@ -657,12 +751,14 @@ function updatePreview() {
       </div>
       ${projet||desc?`<div class="fdesc"><strong>Description</strong>${projet}${desc?' — '+desc:''}</div>`:''}
       <table class="ft">
-        <thead><tr><th>Date</th><th>Description</th><th class="r">Heures</th><th class="r">Tarif/h</th><th class="r">Total</th></tr></thead>
-        <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:#ccc;padding:16px;font-weight:300;">Aucune intervention</td></tr>'}</tbody>
+        <thead><tr>${invoiceMode==='forfait'
+          ? '<th colspan="4">Description</th><th class="r">Montant</th>'
+          : '<th>Date</th><th>Description</th><th class="r">Heures</th><th class="r">Tarif/h</th><th class="r">Total</th>'}</tr></thead>
+        <tbody>${rows||`<tr><td colspan="5" style="text-align:center;color:#ccc;padding:16px;font-weight:300;">Aucune ${invoiceMode==='forfait'?'ligne':'intervention'}</td></tr>`}</tbody>
       </table>
       <div class="totw"><div class="totbox">
-        <div class="trow"><span>Total heures</span><span>${totalH}h</span></div>
-        <div class="trow"><span>Sous-total</span><span>${fmtEur(totalM)}</span></div>
+        ${invoiceMode!=='forfait'?`<div class="trow"><span>Total heures</span><span>${totalH}h</span></div>
+        <div class="trow"><span>Sous-total</span><span>${fmtEur(totalM)}</span></div>`:''}
         <div class="trow tot"><span>Total TTC</span><span>${fmtEur(totalM)}</span></div>
       </div></div>
       <div class="fsign">Merci de votre confiance,<br>Bien cordialement,<br><br><strong>Noura Fassih</strong></div>
@@ -940,7 +1036,11 @@ function clearForm() {
   set('fNum',''); set('fDate', new Date().toISOString().split('T')[0]); set('fTerms','8 jours');
   set('cNom',''); set('cAddr',''); set('cSiret',''); set('cContact',''); set('cProjet',''); set('cDesc','');
   inters = [];
+  forfaits = [];
+  invoiceMode = 'horaire';
   renderInters();
+  renderForfaits();
+  setMode('horaire', true);
   document.querySelectorAll('.ctab,.citem').forEach(t => t.classList.remove('active'));
   updatePreview();
 }
@@ -953,7 +1053,7 @@ async function manualsave() {
     fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
     cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
     cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
-    inters
+    inters, mode:invoiceMode, forfaits
   };
   await dbSet(currentClient, currentYM, data);
   if(btn){ btn.textContent='✓ Sauvegardé !'; setTimeout(()=>{ btn.textContent='💾 Sauvegarder'; btn.classList.remove('saving'); },2000); }
