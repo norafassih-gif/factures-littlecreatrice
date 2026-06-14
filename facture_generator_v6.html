@@ -489,6 +489,7 @@ async function loadInvoice(client, ym) {
     set('cNom', d.cNom); set('cAddr', d.cAddr); set('cSiret', d.cSiret);
     set('cContact', d.cContact); set('cProjet', d.cProjet); set('cDesc', d.cDesc);
     inters = (d.inters||[]).map(i => ({...i, id: _interIdCounter++}));
+    sortInters();
     forfaits = (d.forfaits||[]).map(f => ({...f, id: _forfaitIdCounter++}));
     invoiceMode = d.mode || (CLIENTS[client].mode || 'horaire');
   } else {
@@ -634,7 +635,14 @@ async function deleteCurrentInvoice() {
 /* ── INTERVENTIONS ── */
 function addInter(date='',desc='',h=4,p=50) {
   inters.push({id: _interIdCounter++, date, desc, h, p});
-  renderInters(); autosave();
+  sortInters(); renderInters(); autosave();
+}
+function sortInters() {
+  inters.sort((a,b) => {
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
 }
 function delInter(id) { inters=inters.filter(i=>+i.id!==+id); renderInters(); autosave(); }
 function dupInter(id) { const i=inters.find(x=>+x.id===+id); if(!i) return; addInter(i.date,i.desc,i.h,i.p); }
@@ -659,7 +667,7 @@ function renderInters() {
 
     const di = document.createElement('input');
     di.className = 'di'; di.type = 'date'; di.value = i.date || '';
-    di.onchange = () => { i.date = di.value; autosave(); };
+    di.onchange = () => { i.date = di.value; sortInters(); renderInters(); autosave(); };
 
     const ds = document.createElement('input');
     ds.className = 'dsc'; ds.type = 'text'; ds.value = i.desc || ''; ds.placeholder = 'Description';
@@ -1015,6 +1023,8 @@ function importSelectedEvents() {
   });
 
   icalSelected.clear();
+  sortInters();
+  renderInters();
   renderIcalEvents();
 }
 
