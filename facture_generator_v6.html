@@ -187,6 +187,97 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
 .forfait-item input.fmnt{width:100px;font-size:12px;font-weight:600;font-family:'Montserrat',sans-serif;border:1.5px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--texte);background:#fff;outline:none;text-align:right}
 .forfait-item input:focus{border-color:var(--bleu)}
 
+
+/* ══ RESPONSIVE MOBILE ══ */
+@media (max-width: 768px) {
+  /* Header */
+  .header { padding:10px 14px; }
+  .ll { font-size:15px; }
+  .lb { padding:2px 7px; }
+  .lc { font-size:15px; }
+  .hsep, .hsub { display:none; }
+  .nda { font-size:9px; padding:3px 9px; }
+  .save-ok { display:none; }
+
+  /* Layout → colonne unique */
+  .layout { flex-direction:column; height:auto; overflow:visible; }
+  .sidebar { width:100%; min-width:unset; border-right:none; border-bottom:1px solid var(--border); display:none; }
+  .sidebar.mob-open { display:flex; }
+  .form-col { width:100%; min-width:unset; border-right:none; overflow-y:visible; }
+  .preview-col { display:none; padding:14px; }
+  .preview-col.mob-open { display:block; }
+
+  /* Barre de navigation mobile en bas */
+  .mob-nav {
+    position:fixed; bottom:0; left:0; right:0; z-index:100;
+    background:#fff; border-top:2px solid var(--bleu-c);
+    display:flex; align-items:center;
+    box-shadow:0 -2px 12px rgba(24,95,165,.12);
+  }
+  .mob-nav-btn {
+    flex:1; padding:10px 4px 12px; text-align:center; cursor:pointer;
+    font-size:9px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--doux); border:none; background:none; font-family:'Montserrat',sans-serif;
+    transition:.15s; display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  .mob-nav-btn .ico { font-size:20px; }
+  .mob-nav-btn.active { color:var(--bleu); }
+  .mob-nav-btn.active .ico-bar { width:28px; height:3px; background:var(--bleu); border-radius:2px; }
+  .ico-bar { width:28px; height:3px; background:transparent; border-radius:2px; transition:.15s; }
+
+  /* Form */
+  .fc-head { padding:12px 14px 8px; flex-wrap:wrap; gap:6px; }
+  .fc-head-title { font-size:12px; }
+  .fsec { padding:12px 14px; }
+  .g2 { grid-template-columns:1fr 1fr; gap:8px; }
+  .frow input, .frow textarea, .frow select { font-size:14px; padding:9px 11px; }
+  .frow label { font-size:9px; }
+
+  /* Interventions */
+  .inter-item { padding:10px; }
+  .ii-top { flex-wrap:wrap; }
+  .ii-top input.di { width:100%; flex:none; }
+  .ii-top input.dsc { flex:1; min-width:100px; }
+  .ii-bot { flex-wrap:wrap; gap:6px; }
+  .ii-bot input { width:70px; }
+
+  /* Boutons */
+  .newbtn, .savebtn, .printbtn, .delbtn-inv { margin:6px 14px; font-size:11px; }
+
+  /* Sidebar mobile */
+  .client-list { flex-direction:row; flex-wrap:wrap; gap:6px; }
+  .citem { padding:7px 12px; font-size:12px; }
+  .hist-list { max-height:200px; }
+
+  /* iCal */
+  .ical-zone { margin-top:10px; }
+  .ical-filter { flex-wrap:wrap; gap:6px; }
+
+  /* Padding bas pour la nav fixe */
+  .form-col { padding-bottom:70px; }
+
+  /* Mode toggle */
+  .mode-toggle { margin-bottom:10px; }
+  .mode-btn { font-size:10px; padding:9px; }
+
+  /* Preview */
+  .facture { font-size:10px; }
+  .fac-band { padding:12px 14px; flex-wrap:wrap; gap:8px; }
+  .fac-body { padding:14px; }
+  .fac-mot { font-size:22px; letter-spacing:3px; }
+  .f2c { grid-template-columns:1fr; gap:10px; }
+  table.ft { font-size:9px; }
+  table.ft thead th, table.ft tbody td { padding:5px 6px; }
+  .frib-g { grid-template-columns:1fr; }
+}
+
+@media (max-width: 768px) {
+  .mob-nav { display:flex; }
+}
+@media (min-width: 769px) {
+  .mob-nav { display:none !important; }
+}
+
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{background:#fff}
@@ -326,6 +417,25 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
 </div>
 
 </div><!-- /layout -->
+
+<!-- Barre navigation mobile -->
+<div class="mob-nav" id="mobNav">
+  <button class="mob-nav-btn active" id="mobBtnClients" onclick="mobTab('clients')">
+    <div class="ico">👤</div>
+    <div>Clients</div>
+    <div class="ico-bar"></div>
+  </button>
+  <button class="mob-nav-btn" id="mobBtnForm" onclick="mobTab('form')">
+    <div class="ico">📝</div>
+    <div>Facture</div>
+    <div class="ico-bar"></div>
+  </button>
+  <button class="mob-nav-btn" id="mobBtnPreview" onclick="mobTab('preview')">
+    <div class="ico">👁</div>
+    <div>Aperçu</div>
+    <div class="ico-bar"></div>
+  </button>
+</div>
 
 <script>
 const CLIENTS = {
@@ -580,11 +690,11 @@ function renderClients() {
     div.className = 'citem' + (k===currentClient?' active':'');
     div.innerHTML = `<span>${cl.label}</span>`;
     div.onclick = async () => {
-      // Marquer actif immédiatement
       document.querySelectorAll('.citem').forEach(el => el.classList.remove('active'));
       div.classList.add('active');
       const keys = await dbList(k);
       await loadInvoice(k, keys.length ? keys[0] : dateToYM(new Date()));
+      if (window.innerWidth <= 768) mobTab('form');
     };
     c.appendChild(div);
     // Badge async
@@ -620,7 +730,7 @@ async function renderHist() {
     const div = document.createElement('div');
     div.className = 'hitem' + (ym===currentYM?' active':'');
     div.innerHTML = `<div><div class="hdate">${currentYMLabel(ym)}</div>${num?`<div style="font-size:9px;color:#aaa;margin-top:1px">N° ${num}</div>`:''}</div><div class="hamt">${total?fmtEur(total):''}</div>`;
-    div.onclick = () => loadInvoice(currentClient, ym);
+    div.onclick = () => { loadInvoice(currentClient, ym); if(window.innerWidth<=768) mobTab('form'); };
     c.appendChild(div);
   }
 }
@@ -1069,6 +1179,43 @@ async function manualsave() {
   renderHist();
 }
 
+
+/* ── NAVIGATION MOBILE ── */
+function mobTab(tab) {
+  const sidebar    = document.querySelector('.sidebar');
+  const formCol    = document.querySelector('.form-col');
+  const previewCol = document.querySelector('.preview-col');
+  const btnC = document.getElementById('mobBtnClients');
+  const btnF = document.getElementById('mobBtnForm');
+  const btnP = document.getElementById('mobBtnPreview');
+
+  // Tout cacher
+  sidebar.classList.remove('mob-open');
+  previewCol.classList.remove('mob-open');
+  formCol.style.display = 'none';
+  [btnC,btnF,btnP].forEach(b => b.classList.remove('active'));
+
+  if (tab === 'clients') {
+    sidebar.classList.add('mob-open');
+    btnC.classList.add('active');
+  } else if (tab === 'form') {
+    formCol.style.display = '';
+    btnF.classList.add('active');
+  } else if (tab === 'preview') {
+    previewCol.classList.add('mob-open');
+    updatePreview();
+    btnP.classList.add('active');
+  }
+}
+
+function initMobileLayout() {
+  if (window.innerWidth <= 768) {
+    // Démarrer sur l'onglet formulaire
+    mobTab('form');
+    document.getElementById('mobBtnForm').classList.add('active');
+  }
+}
+
 /* ── INIT ── */
 const todayYM = dateToYM(new Date());
 renderClients();
@@ -1082,6 +1229,8 @@ async function initLoad() {
   updatePreview();
 }
 initLoad();
+initMobileLayout();
+window.addEventListener('resize', () => { if(window.innerWidth > 768) { document.querySelector('.sidebar').classList.remove('mob-open'); document.querySelector('.preview-col').classList.remove('mob-open'); document.querySelector('.form-col').style.display=''; } });
 // mémoriser le dernier actif dans la session
 setInterval(() => {
   const val = JSON.stringify({c:currentClient,ym:currentYM});
