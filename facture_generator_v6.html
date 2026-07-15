@@ -203,7 +203,7 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   .layout { flex-direction:column; height:auto; overflow:visible; }
   .sidebar { width:100%; min-width:unset; border-right:none; border-bottom:1px solid var(--border); display:none; }
   .sidebar.mob-open { display:flex; }
-  .form-col { width:100%; min-width:unset; border-right:none; overflow-y:visible; }
+  .form-col { width:100%; min-width:unset; border-right:none; overflow-y:visible; display:flex; }
   .preview-col { display:none; padding:14px; }
   .preview-col.mob-open { display:block; }
 
@@ -579,7 +579,12 @@ function autosave() {
       cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
       inters, mode:invoiceMode, forfaits
     };
-    await dbSet(currentClient, currentYM, data);
+    try {
+      await dbSet(currentClient, currentYM, data);
+    } catch (err) {
+      console.error('Erreur de sauvegarde automatique :', err);
+      return;
+    }
     const el = document.getElementById('saveOk');
     el.classList.add('on');
     clearTimeout(el._t);
@@ -594,7 +599,13 @@ async function loadInvoice(client, ym) {
   currentYM = ym;
   // Indicateur chargement
   document.getElementById('mnavLabel').textContent = '…';
-  const d = await dbGet(client, ym);
+  let d = null;
+  try {
+    d = await dbGet(client, ym);
+  } catch (err) {
+    console.error('Erreur de chargement de la facture, utilisation des valeurs par défaut :', err);
+    d = null;
+  }
   if (d) {
     set('fNum', d.fNum); set('fDate', d.fDate); set('fTerms', d.fTerms);
     set('cNom', d.cNom); set('cAddr', d.cAddr); set('cSiret', d.cSiret);
@@ -614,7 +625,10 @@ async function loadInvoice(client, ym) {
   }
   renderForfaits();
   setMode(invoiceMode, true);
-  if (!v('fNum')) await genNumAuto();
+  if (!v('fNum')) {
+    try { await genNumAuto(); }
+    catch (err) { console.error('Erreur de numérotation automatique :', err); }
+  }
   renderInters();
   renderClients();
   updateNavLabel();
@@ -622,7 +636,12 @@ async function loadInvoice(client, ym) {
   renderHist();     // async en arrière-plan (historique)
 }
 
-function firstDayOfMonth(ym) { return new Date().toISOString().split('T')[0]; }
+function firstDayOfMonth(ym) {
+  if (!ym) return new Date().toISOString().split('T')[0];
+  const [y, m] = ym.split('-');
+  if (!y || !m) return new Date().toISOString().split('T')[0];
+  return `${y}-${String(m).padStart(2,'0')}-01`;
+}
 
 /* ── NAVIGATION MOIS ── */
 function ymToDate(ym) { const [y,m] = ym.split('-'); return new Date(+y, +m-1, 1); }
@@ -714,11 +733,19 @@ async function renderHist() {
   const c = document.getElementById('histList');
   if (!c) return;
   c.innerHTML = '<div class="no-hist" style="font-size:10px;color:#aaa;padding:8px;">Chargement…</div>';
-  const keys = await dbList(currentClient);
+  let keys = [];
+  try {
+    keys = await dbList(currentClient);
+  } catch (err) {
+    console.error('Erreur de chargement de l’historique :', err);
+    c.innerHTML = '<div class="no-hist">Historique indisponible</div>';
+    return;
+  }
   c.innerHTML = '';
   if (!keys.length) { c.innerHTML = '<div class="no-hist">Aucune facture sauvegardée</div>'; return; }
   for (const ym of keys) {
-    const data = await dbGet(currentClient, ym);
+    let data = null;
+    try { data = await dbGet(currentClient, ym); } catch (err) { console.error('Erreur historique :', err); }
     let total = 0, num = '';
     if (data) {
       if ((data.mode||'horaire') === 'forfait') {
@@ -827,6 +854,29 @@ function v(id){return document.getElementById(id)?.value||''}
 function set(id,val){const el=document.getElementById(id);if(el&&val!==undefined)el.value=val}
 function fmtDate(d){if(!d)return'—';const[y,m,j]=d.split('-');return`${j} ${MOIS3[+m-1]} ${y}`}
 function fmtEur(n){return(parseFloat(n)||0).toFixed(2).replace('.',',')+' €'}
+
+/* ── EXPORT / NOM DE FICHIER PDF ── */
+function sanitizeFilenamePart(s) {
+  return (s || '')
+    .toString()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // retire les accents
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+function buildExportFilename() {
+  const clientLabel = v('cNom') || (CLIENTS[currentClient] && CLIENTS[currentClient].label) || 'Client';
+  const client = sanitizeFilenamePart(clientLabel) || 'Client';
+  const num = sanitizeFilenamePart(v('fNum')) || 'SansNumero';
+  const mois = currentYM ? sanitizeFilenamePart(currentYMLabel(currentYM)) : '';
+  return `Facture_${client}_${num}${mois ? '_' + mois : ''}`;
+}
+const DEFAULT_DOC_TITLE = 'Little Créatrice — Factures';
+function setExportTitle() { document.title = buildExportFilename(); }
+function restoreDocTitle() { document.title = DEFAULT_DOC_TITLE; }
+window.addEventListener('beforeprint', setExportTitle);
+window.addEventListener('afterprint', restoreDocTitle);
 
 /* ── PREVIEW ── */
 function updatePreview() {
@@ -1140,16 +1190,6 @@ function importSelectedEvents() {
 }
 
 function clearForm() {
-  if (inters.length > 0 && !confirm('Vider le formulaire et commencer une nouvelle facture ?')) return;
-  set('fNum',''); set('fDate', new Date().toISOString().split('T')[0]);
-  set('cNom',''); set('cAddr',''); set('cSiret','');
-  set('cContact',''); set('cProjet',''); set('cDesc','');
-  inters = [];
-  renderInters();
-  updatePreview();
-}
-
-function clearForm() {
   if (!confirm('Effacer le formulaire pour créer une nouvelle facture ?')) return;
   set('fNum',''); set('fDate', new Date().toISOString().split('T')[0]); set('fTerms','8 jours');
   set('cNom',''); set('cAddr',''); set('cSiret',''); set('cContact',''); set('cProjet',''); set('cDesc','');
@@ -1173,7 +1213,13 @@ async function manualsave() {
     cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
     inters, mode:invoiceMode, forfaits
   };
-  await dbSet(currentClient, currentYM, data);
+  try {
+    await dbSet(currentClient, currentYM, data);
+  } catch (err) {
+    console.error('Erreur de sauvegarde :', err);
+    if (btn) { btn.textContent = '⚠ Échec, réessayer'; btn.classList.remove('saving'); }
+    return;
+  }
   if(btn){ btn.textContent='✓ Sauvegardé !'; setTimeout(()=>{ btn.textContent='💾 Sauvegarder'; btn.classList.remove('saving'); },2000); }
   const el = document.getElementById('saveOk');
   if(el){ el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('on'),2000); }
@@ -1200,7 +1246,7 @@ function mobTab(tab) {
     sidebar.classList.add('mob-open');
     btnC.classList.add('active');
   } else if (tab === 'form') {
-    formCol.style.display = '';
+    formCol.style.display = 'flex';
     btnF.classList.add('active');
   } else if (tab === 'preview') {
     previewCol.classList.add('mob-open');
@@ -1219,14 +1265,20 @@ function initMobileLayout() {
 
 /* ── INIT ── */
 const todayYM = dateToYM(new Date());
-renderClients();
+try { renderClients(); } catch (err) { console.error('Erreur d’initialisation de la liste clients :', err); }
 // charger le dernier client/mois actif
 const lastActive = isLocal ? localStorage.getItem('lc2_last') : sessionStorage.getItem('lc2_last');
 async function initLoad() {
-  if (lastActive) {
-    try { const {c,ym}=JSON.parse(lastActive); await loadInvoice(c,ym); }
-    catch(e){ await loadInvoice('affida', todayYM); }
-  } else { await loadInvoice('affida', todayYM); }
+  try {
+    if (lastActive) {
+      try { const {c,ym}=JSON.parse(lastActive); await loadInvoice(c,ym); }
+      catch(e){ await loadInvoice('affida', todayYM); }
+    } else {
+      await loadInvoice('affida', todayYM);
+    }
+  } catch (err) {
+    console.error('Erreur au chargement initial de la facture :', err);
+  }
   updatePreview();
 }
 initLoad();
