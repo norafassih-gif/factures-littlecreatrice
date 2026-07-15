@@ -281,10 +281,11 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{background:#fff}
-  .header,.sidebar,.form-col,.prev-label{display:none!important}
-  .layout{height:auto}
-  .preview-col{padding:0}
-  .facture{box-shadow:none;border-radius:0;max-width:100%}
+  .header,.sidebar,.form-col,.prev-label,.mob-nav{display:none!important}
+  .layout{height:auto;display:block!important}
+  .preview-col{padding:0;display:block!important;overflow:visible!important}
+  .preview-col.mob-open{padding:0}
+  .facture{box-shadow:none;border-radius:0;max-width:100%;display:block!important}
   @page{margin:.5cm;size:A4}
 }
 </style>
