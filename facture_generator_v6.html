@@ -49,6 +49,11 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--texte)
 .no-hist{font-size:11px;color:#bbb;padding:12px;text-align:center;font-weight:300}
 .new-btn{margin:10px;padding:9px;border:2px dashed var(--bleu-c);border-radius:7px;background:none;color:var(--bleu);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif}
 .new-btn:hover{background:var(--bleu-p);border-color:var(--bleu)}
+.dup-btn{display:none;width:100%;margin:0 0 12px;padding:10px;border:none;border-radius:7px;background:var(--vert);color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif}
+.dup-btn:hover{filter:brightness(1.1)}
+.dup-info{display:none;font-size:10px;color:var(--doux);background:var(--bleu-p);border:1px solid var(--bleu-c);border-radius:6px;padding:7px 9px;margin-bottom:8px;line-height:1.5}
+.bulk-btn{margin:0 10px 10px;padding:9px;border:none;border-radius:7px;background:var(--vert);color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif}
+.bulk-btn:hover{filter:brightness(1.1)}
 
 /* ── COLONNE 2 : formulaire ── */
 .form-col{width:360px;min-width:360px;background:var(--blanc);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
@@ -314,6 +319,7 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   <div class="sb-section" style="margin-top:4px">Historique <span id="histClient" style="font-weight:300;text-transform:none;letter-spacing:0;color:#888"></span></div>
   <div class="hist-list" id="histList"></div>
   <button class="new-btn" onclick="newMonth()">＋ Nouveau mois</button>
+  <button class="bulk-btn" onclick="genererToutesCM()" title="Crée d'un coup les factures community management du mois (Silk, Prince Wagram, Terzo, Lyna, Trégusto)">⚡ Factures CM du mois</button>
 </div>
 
 <!-- ══ FORMULAIRE ══ -->
@@ -325,6 +331,11 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
       <div class="mnav-label" id="mnavLabel">—</div>
       <button class="mnav-btn" onclick="nextMonth()">›</button>
     </div>
+  </div>
+
+  <div class="fsec" id="cycleZone" style="padding-bottom:0">
+    <div class="dup-info" id="cycleInfo"></div>
+    <button class="dup-btn" id="dupBtn" onclick="dupliquerMoisSuivant()">⧉ Dupliquer → facture du mois suivant</button>
   </div>
 
   <div class="fsec">
@@ -444,12 +455,13 @@ const CLIENTS = {
   excellence:{label:'Excellence',    nom:'Excellence Academy',           addr:'3 rue des prés\nRoissy en France',                           siret:'82990848200013',    contact:'',                       projet:'Intervenante CS Accueil / BTS GTLA',    desc:'', terms:'8 jours', periode:'semaine'},
   rush:      {label:'Rush School',   nom:'Formation Influence – Rush School', addr:'6 Rue des Bateliers\n92110 Clichy',                     siret:'',                  contact:'',                       projet:'Formation BTS NDRC / MCO',             desc:'', terms:'40 jours du prochain mois'},
   mda:       {label:'MDA',           nom:'MDA Performance',              addr:'10 rue de Penthiévre\n75008 Paris',                          siret:'97967569100013',    contact:'',                       projet:'Formation',                            desc:'', terms:'30 jours'},
-  silk:      {label:'Silk Paris',    nom:'SILK PARIS',                   addr:'13B rue Vernier\n75017 PARIS',                               siret:'',                  contact:'Amadou BA – CEO and Founder', projet:'Community management',             desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait'},
+  silk:      {label:'Silk Paris',    nom:'SILK PARIS',                   addr:'13B rue Vernier\n75017 PARIS',                               siret:'',                  contact:'Amadou BA – CEO and Founder', projet:'Community management',             desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:15}},
   skillup:   {label:'Skill Up',      nom:'SKILL UP',                     addr:'12 rue Galilée\n75116 Paris',                                siret:'93430320700013',    contact:'',                       projet:'Intervention en studio',               desc:'RPMS – Modules CCP', terms:'30 jours', mode:'horaire'},
-  wagram:    {label:'Prince Wagram',  nom:'Prince Wagram',                 addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait'},
-  terzo:     {label:'Terzo Ristorante', nom:'Terzo Ristorante',           addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait'},
-  lyna:      {label:'Lyna Ristorante', nom:'Lyna Ristorante',             addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait'},
-  opened: {label:'Open ED', nom:'OPEN ED', addr:'17 Avenue du Président Wilson\nNanterre', siret:'93431038400011', contact:'', projet:'Formation', desc:'', terms:'30 jours', mode:'horaire'}
+  wagram:    {label:'Prince Wagram',  nom:'Prince Wagram',                 addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:15}},
+  terzo:     {label:'Terzo Ristorante', nom:'Terzo Ristorante',           addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:15}},
+  lyna:      {label:'Lyna Ristorante', nom:'Lyna Ristorante',             addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:15}},
+  opened: {label:'Open ED', nom:'OPEN ED', addr:'17 Avenue du Président Wilson\nNanterre', siret:'93431038400011', contact:'', projet:'Formation', desc:'', terms:'30 jours', mode:'horaire'},
+  tregusto: {label:'Trégusto', nom:'OCOIN', addr:'143 Avenue Général de Gaulle\n78500 Sartrouville', siret:'98911920100014', contact:'', projet:'Community management', desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:25}}
 };
 
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -621,7 +633,8 @@ async function loadInvoice(client, ym) {
     set('cNom', c.nom); set('cAddr', c.addr); set('cSiret', c.siret);
     set('cContact', c.contact); set('cProjet', c.projet); set('cDesc', c.desc);
     inters = [];
-    forfaits = (c.mode === 'forfait') ? [{id:_forfaitIdCounter++, desc:c.desc||'Forfait mensuel', montant:0}] : [];
+    forfaits = (c.mode === 'forfait') ? [{id:_forfaitIdCounter++, desc:(c.desc||'Forfait mensuel') + (c.cycle ? ' ' + cyclePeriodText(client, ym) : ''), montant:0}] : [];
+    if (c.cycle && cyclePeriod(client, ym)) set('fDate', isoLocal(cyclePeriod(client, ym).end));
     invoiceMode = c.mode || 'horaire';
   }
   renderForfaits();
@@ -707,6 +720,7 @@ function updateNavLabel() {
   const newBtn = document.querySelector('.new-btn');
   if (newBtn) newBtn.textContent = getPeriodType(currentClient) === 'semaine' ? '＋ Nouvelle semaine' : '＋ Nouveau mois';
   updatePresets();
+  updateCycleZone();
 }
 const PRESETS = {
   excellence: [
@@ -732,8 +746,9 @@ function updatePresets() {
   const zone = document.getElementById('presetZone');
   const btns = document.getElementById('presetBtns');
   const presets = PRESETS[currentClient];
-  if (!presets || !zone || !btns) return;
+  if (!zone || !btns) return;
   zone.style.display = presets ? 'block' : 'none';
+  if (!presets) return;
   btns.innerHTML = '';
   presets.forEach(p => {
     const b = document.createElement('button');
@@ -1013,17 +1028,137 @@ function updatePreview() {
 
 
 /* ── NUMÉRO AUTO ── */
+async function nextNumFor(period) {
+  // Préfixe : "Snn" pour une période hebdomadaire (ex: Excellence), sinon "mm" du mois
+  const prefix = isWeekPeriod(period) ? 'S' + period.split('-W')[1].padStart(2,'0') : period.split('-')[1];
+  // Compteur persistant pour cette période (partagé entre clients qui utilisent la même clé de période)
+  const counterData = await dbGet('_counter', period);
+  const next = (counterData && counterData.n) ? counterData.n + 1 : 1;
+  await dbSet('_counter', period, { n: next });
+  return prefix + '/' + String(next).padStart(3,'0');
+}
 async function genNumAuto() {
   if (!currentYM) return;
-  // Préfixe : "Wnn" pour une période hebdomadaire (ex: Excellence), sinon "mm" du mois
-  const prefix = isWeekPeriod(currentYM) ? currentYM.split('-W')[1].padStart(2,'0').replace(/^/, 'S') : currentYM.split('-')[1];
-  // Compteur persistant pour cette période (partagé entre clients qui utilisent la même clé de période)
-  const counterData = await dbGet('_counter', currentYM);
-  const next = (counterData && counterData.n) ? counterData.n + 1 : 1;
-  await dbSet('_counter', currentYM, { n: next });
-  const num = prefix + '/' + String(next).padStart(3,'0');
-  set('fNum', num);
+  set('fNum', await nextNumFor(currentYM));
   autosave();
+}
+
+/* ── FACTURES RÉCURRENTES (community management) ──
+   Clients avec cycle:{debut:N} : la facture du mois M couvre du N du mois M-1 au (N-1) du mois M.
+   Ex. Silk (debut 15), facture Septembre 2026 = du 15 août au 14 septembre 2026.
+   Ex. Trégusto (debut 25), facture Septembre 2026 = du 25 août au 24 septembre 2026. */
+function hasCycle(client) { return !!(CLIENTS[client] && CLIENTS[client].cycle); }
+function cyclePeriod(client, ym) {
+  if (!hasCycle(client) || !ym || isWeekPeriod(ym)) return null;
+  const debut = CLIENTS[client].cycle.debut;
+  const [y, m] = ym.split('-').map(Number);
+  return { start: new Date(y, m - 2, debut), end: new Date(y, m - 1, debut - 1) };
+}
+function isoLocal(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function cyclePeriodText(client, ym) {
+  const p = cyclePeriod(client, ym); if (!p) return '';
+  const f = (d, withYear) => d.getDate() + ' ' + MOIS[d.getMonth()].toLowerCase() + (withYear ? ' ' + d.getFullYear() : '');
+  const sameYear = p.start.getFullYear() === p.end.getFullYear();
+  return `du ${f(p.start, !sameYear)} au ${f(p.end, true)}`;
+}
+// Retire une ancienne mention de période ("du 15 juillet au 14 août", "15 Juil - 14 Aout", "Période du 02/07/2026 au ...")
+function stripPeriodText(s) {
+  return (s || '').replace(/\s*[—–-]?\s*(p[ée]riode\s*:?\s*)?(du\s+)?\d{1,2}(er)?[\s\/-].*$/i, '').trim();
+}
+function nextYM(ym) { const d = ymToDate(ym); d.setMonth(d.getMonth() + 1); return dateToYM(d); }
+
+// Construit la facture du mois `targetYM` à partir d'une facture précédente (duplicata)
+async function buildRecurring(client, targetYM, src) {
+  const c = CLIENTS[client];
+  const data = JSON.parse(JSON.stringify(src || {}));
+  const period = cyclePeriodText(client, targetYM);
+  const p = cyclePeriod(client, targetYM);
+  data.fNum = await nextNumFor(targetYM);
+  data.fDate = p ? isoLocal(p.end) : firstDayOfMonth(targetYM);
+  data.fTerms = data.fTerms || c.terms;
+  data.cNom = data.cNom || c.nom; data.cAddr = data.cAddr || c.addr; data.cSiret = data.cSiret || c.siret;
+  data.cContact = data.cContact || c.contact; data.cProjet = data.cProjet || c.projet;
+  data.cDesc = stripPeriodText(data.cDesc) || c.desc;
+  data.mode = 'forfait';
+  data.inters = [];
+  let lines = (data.forfaits || []).map(f => ({ desc: f.desc, montant: f.montant }));
+  if (!lines.length) lines = [{ desc: c.desc || 'Forfait mensuel', montant: 0 }];
+  // La 1re ligne porte la période ; les autres lignes (ex: sponsoring) sont recopiées telles quelles
+  lines[0].desc = (stripPeriodText(lines[0].desc) || c.desc || 'Forfait mensuel') + (period ? ' ' + period : '');
+  data.forfaits = lines;
+  data.duplicataDe = src && src.fNum ? src.fNum : '';
+  return data;
+}
+
+// Dernière facture enregistrée du client avant `targetYM`
+async function findPreviousInvoice(client, targetYM) {
+  const keys = (await dbList(client)).filter(k => !isWeekPeriod(k) && k < targetYM).sort().reverse();
+  for (const k of keys) { const d = await dbGet(client, k); if (d) return { ym: k, data: d }; }
+  return null;
+}
+
+async function dupliquerMoisSuivant() {
+  if (!hasCycle(currentClient) || !currentYM) return;
+  clearTimeout(saveTimer);
+  // on s'assure que la facture affichée est bien enregistrée avant de la copier
+  const src = {
+    fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
+    cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
+    cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
+    inters, mode:invoiceMode, forfaits
+  };
+  await dbSet(currentClient, currentYM, src);
+  const target = nextYM(currentYM);
+  const existing = await dbGet(currentClient, target);
+  if (existing) {
+    if (!confirm(`Une facture ${currentYMLabel(target)} existe déjà pour ${CLIENTS[currentClient].label} (N° ${existing.fNum||'—'}).\nL'ouvrir ?`)) return;
+    await loadInvoice(currentClient, target); return;
+  }
+  const data = await buildRecurring(currentClient, target, src);
+  await dbSet(currentClient, target, data);
+  await loadInvoice(currentClient, target);
+}
+
+async function genererToutesCM() {
+  const defYM = dateToYM(new Date());
+  const ans = prompt('Générer les factures community management de quel mois ? (format AAAA-MM)', defYM);
+  if (!ans) return;
+  const target = ans.trim();
+  if (!/^\d{4}-\d{2}$/.test(target)) { alert('Format attendu : AAAA-MM (ex: ' + defYM + ')'); return; }
+  const report = [];
+  for (const [k, c] of Object.entries(CLIENTS)) {
+    if (!c.cycle) continue;
+    try {
+      const existing = await dbGet(k, target);
+      if (existing) { report.push(`• ${c.label} : déjà faite (N° ${existing.fNum||'—'})`); continue; }
+      const prev = await findPreviousInvoice(k, target);
+      if (!prev) { report.push(`• ${c.label} : aucune facture précédente à dupliquer`); continue; }
+      const data = await buildRecurring(k, target, prev.data);
+      await dbSet(k, target, data);
+      const tot = data.forfaits.reduce((s,f)=>s+(parseFloat(f.montant)||0),0);
+      report.push(`• ${c.label} : N° ${data.fNum} — ${fmtEur(tot)} (${cyclePeriodText(k, target)})`);
+    } catch (err) {
+      console.error(err);
+      report.push(`• ${c.label} : erreur`);
+    }
+  }
+  alert(`Factures CM — ${currentYMLabel(target)}\n\n` + report.join('\n'));
+  if (hasCycle(currentClient)) await loadInvoice(currentClient, target);
+  else renderClients();
+}
+
+function updateCycleZone() {
+  const zone = document.getElementById('cycleZone');
+  const info = document.getElementById('cycleInfo');
+  const btn = document.getElementById('dupBtn');
+  if (!zone) return;
+  const on = hasCycle(currentClient) && currentYM && !isWeekPeriod(currentYM);
+  zone.style.display = on ? '' : 'none';
+  if (!on) return;
+  info.style.display = 'block';
+  info.innerHTML = `🔁 Facture récurrente — période couverte : <strong>${cyclePeriodText(currentClient, currentYM)}</strong>`;
+  btn.style.display = 'block';
+  btn.textContent = `⧉ Dupliquer → facture ${currentYMLabel(nextYM(currentYM))}`;
 }
 
 /* ── ICAL PARSING ── */
