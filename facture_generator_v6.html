@@ -319,7 +319,7 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   <div class="sb-section" style="margin-top:4px">Historique <span id="histClient" style="font-weight:300;text-transform:none;letter-spacing:0;color:#888"></span></div>
   <div class="hist-list" id="histList"></div>
   <button class="new-btn" onclick="newMonth()">＋ Nouveau mois</button>
-  <button class="bulk-btn" onclick="genererToutesCM()" title="Crée d'un coup les factures community management du mois (Silk, Prince Wagram, Terzo, Lyna, Trégusto)">⚡ Factures CM du mois</button>
+  <button class="bulk-btn" onclick="genererToutesCM()" title="Crée d'un coup les factures community management du mois (Silk, Prince Wagram, Terzo, Lyna, Trégusto, G. Lonfat)">⚡ Factures CM du mois</button>
 </div>
 
 <!-- ══ FORMULAIRE ══ -->
@@ -461,7 +461,8 @@ const CLIENTS = {
   terzo:     {label:'Terzo Ristorante', nom:'Terzo Ristorante',           addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:15}},
   lyna:      {label:'Lyna Ristorante', nom:'Lyna Ristorante',             addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:15}},
   opened: {label:'Open ED', nom:'OPEN ED', addr:'17 Avenue du Président Wilson\nNanterre', siret:'93431038400011', contact:'', projet:'Formation', desc:'', terms:'30 jours', mode:'horaire'},
-  tregusto: {label:'Trégusto', nom:'OCOIN', addr:'143 Avenue Général de Gaulle\n78500 Sartrouville', siret:'98911920100014', contact:'', projet:'Community management', desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:25}}
+  tregusto: {label:'Trégusto', nom:'OCOIN', addr:'143 Avenue Général de Gaulle\n78500 Sartrouville', siret:'98911920100014', contact:'', projet:'Community management', desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:25}},
+  lonfat: {label:'Géraldine Lonfat', nom:'Géraldine Lonfat Production', addr:'Chemin du Devin 51\n1012 Lausanne\nSuisse', siret:'CHE-252.60', idLabel:'IDE', contact:'', projet:'Community management Instagram, Facebook, TikTok', desc:'Forfait mensuel — community management (3 publications + 3 stories / semaine, shooting bimensuel)', terms:'À réception', mode:'forfait', montant:565, cycle:{debut:23}}
 };
 
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -633,7 +634,7 @@ async function loadInvoice(client, ym) {
     set('cNom', c.nom); set('cAddr', c.addr); set('cSiret', c.siret);
     set('cContact', c.contact); set('cProjet', c.projet); set('cDesc', c.desc);
     inters = [];
-    forfaits = (c.mode === 'forfait') ? [{id:_forfaitIdCounter++, desc:(c.desc||'Forfait mensuel') + (c.cycle ? ' ' + cyclePeriodText(client, ym) : ''), montant:0}] : [];
+    forfaits = (c.mode === 'forfait') ? [{id:_forfaitIdCounter++, desc:(c.desc||'Forfait mensuel') + (c.cycle ? ' ' + cyclePeriodText(client, ym) : ''), montant:c.montant||0}] : [];
     if (c.cycle && cyclePeriod(client, ym)) set('fDate', isoLocal(cyclePeriod(client, ym).end));
     invoiceMode = c.mode || 'horaire';
   }
@@ -1001,7 +1002,7 @@ function updatePreview() {
       </div>
       <div class="fdiv"></div>
       <div class="f2c">
-        <div><div class="fcl">Facturé à</div><div class="fcv"><strong>${nom}</strong><br>${ah}${siret?`<br><strong>SIRET :</strong> ${siret}`:''}${contact?`<br>${contact}`:''}</div></div>
+        <div><div class="fcl">Facturé à</div><div class="fcv"><strong>${nom}</strong><br>${ah}${siret?`<br><strong>${(CLIENTS[currentClient]&&CLIENTS[currentClient].idLabel)||'SIRET'} :</strong> ${siret}`:''}${contact?`<br>${contact}`:''}</div></div>
         <div><div class="fcl">Prestation</div><div class="fcv">${projet?`<strong>${projet}</strong><br>`:''}${desc?desc.replace(/\n/g,'<br>'):'&nbsp;'}</div></div>
       </div>
       ${projet||desc?`<div class="fdesc"><strong>Description</strong>${projet}${desc?' — '+desc:''}</div>`:''}
@@ -1087,7 +1088,7 @@ async function buildRecurring(client, targetYM, src) {
   data.mode = 'forfait';
   data.inters = [];
   let lines = (data.forfaits || []).map(f => ({ desc: f.desc, montant: f.montant }));
-  if (!lines.length) lines = [{ desc: c.desc || 'Forfait mensuel', montant: 0 }];
+  if (!lines.length) lines = [{ desc: c.desc || 'Forfait mensuel', montant: c.montant || 0 }];
   // La 1re ligne porte la période ; les autres lignes (ex: sponsoring) sont recopiées telles quelles
   lines[0].desc = (stripPeriodText(lines[0].desc) || c.desc || 'Forfait mensuel') + (period ? ' ' + period : '');
   data.forfaits = lines;
@@ -1137,8 +1138,8 @@ async function genererToutesCM() {
       const existing = await dbGet(k, target);
       if (existing) { report.push(`• ${c.label} : déjà faite (N° ${existing.fNum||'—'})`); continue; }
       const prev = await findPreviousInvoice(k, target);
-      if (!prev) { report.push(`• ${c.label} : aucune facture précédente à dupliquer`); continue; }
-      const data = await buildRecurring(k, target, prev.data);
+      if (!prev && !c.montant) { report.push(`• ${c.label} : aucune facture précédente à dupliquer`); continue; }
+      const data = await buildRecurring(k, target, prev ? prev.data : null);
       await dbSet(k, target, data);
       const tot = data.forfaits.reduce((s,f)=>s+(parseFloat(f.montant)||0),0);
       report.push(`• ${c.label} : N° ${data.fNum} — ${fmtEur(tot)} (${cyclePeriodText(k, target)})`);
