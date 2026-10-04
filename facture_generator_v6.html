@@ -418,7 +418,7 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   <button class="clearbtn" onclick="clearForm()">✦ Nouvelle facture vide</button>
   <button class="newbtn" onclick="clearForm()">＋ Nouvelle facture vierge</button>
   <button class="savebtn" id="saveBtn" onclick="manualsave()">💾 Sauvegarder</button>
-  <button class="printbtn" onclick="window.print()">🖨 Imprimer / Exporter PDF</button>
+  <button class="printbtn" onclick="setExportTitle();window.print()">🖨 Imprimer / Exporter PDF</button>
   <button class="delbtn-inv" onclick="deleteCurrentInvoice()">🗑 Supprimer cette facture</button>
 </div>
 
@@ -951,18 +951,19 @@ function sanitizeFilenamePart(s) {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
 }
+// Titre lisible : "Little Créatrice Facture Géraldine Lonfat Production N°11-001"
+// (le "/" du numéro est remplacé par "-" car interdit dans un nom de fichier)
+function cleanTitlePart(s) { return (s || '').toString().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim(); }
 function buildExportFilename() {
-  const clientLabel = v('cNom') || (CLIENTS[currentClient] && CLIENTS[currentClient].label) || 'Client';
-  const client = sanitizeFilenamePart(clientLabel) || 'Client';
-  const num = sanitizeFilenamePart(v('fNum')) || 'SansNumero';
-  const mois = currentYM ? sanitizeFilenamePart(currentYMLabel(currentYM)) : '';
-  return `Facture_${client}_${num}${mois ? '_' + mois : ''}`;
+  const client = cleanTitlePart(v('cNom') || (CLIENTS[currentClient] && CLIENTS[currentClient].label) || 'Client');
+  const num = cleanTitlePart(v('fNum'));
+  return `Little Créatrice Facture ${client}${num ? ' N°' + num : ''}`;
 }
 const DEFAULT_DOC_TITLE = 'Little Créatrice — Factures';
 function setExportTitle() { document.title = buildExportFilename(); }
-function restoreDocTitle() { document.title = DEFAULT_DOC_TITLE; }
+// Le titre reste celui de la facture affichée (Chrome lit le titre AVANT l'événement beforeprint,
+// donc on le tient à jour en permanence : bouton Imprimer comme Cmd+P donnent le bon nom de PDF)
 window.addEventListener('beforeprint', setExportTitle);
-window.addEventListener('afterprint', restoreDocTitle);
 
 /* ── PREVIEW ── */
 function updatePreview() {
@@ -1030,6 +1031,7 @@ function updatePreview() {
       </div>
       <div class="ftva">TVA non applicable — article 293 B du CGI<br>Déclaration d'activité enregistrée sous le numéro 11931122693 auprès du préfet de la région d'Île-de-France.</div>
     </div>`;
+  setExportTitle();
 }
 
 
