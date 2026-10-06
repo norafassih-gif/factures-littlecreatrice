@@ -985,10 +985,24 @@ async function deleteCurrentInvoice() {
     renderClients();
     return;
   }
-  if (!confirm(`Supprimer la facture de ${currentYMLabel(currentYM)} ?`)) return;
+  if (!confirm(`Supprimer la facture de ${periodLabel(currentYM)} (N° ${v('fNum')||'—'}) ?`)) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  // Si c'était le dernier numéro attribué sur la période, on libère le numéro (pas de trou dans la numérotation)
+  const mf = /^(?:\d{2}|S\d{2})\/(\d{3})$/.exec(v('fNum'));
+  if (mf) {
+    const per = basePeriod(currentYM);
+    const cnt = await dbGet('_counter', per);
+    if (cnt && cnt.n === +mf[1]) await dbSet('_counter', per, { n: cnt.n - 1 });
+  }
   await dbDelete(currentClient, currentYM);
   const keys = await dbList(currentClient);
-  loadInvoice(currentClient, keys.length ? keys[0] : dateToYM(new Date()));
+  if (keys.length) { await loadInvoice(currentClient, keys[0]); return; }
+  // Plus aucune facture pour ce client : on revient sur un client qui en a (évite de recréer une facture vide)
+  for (const k of Object.keys(CLIENTS)) {
+    const ks = await dbList(k);
+    if (ks.length) { await loadInvoice(k, ks[0]); return; }
+  }
+  await loadInvoice(currentClient, dateToYM(new Date()));
 }
 
 /* ── INTERVENTIONS ── */
