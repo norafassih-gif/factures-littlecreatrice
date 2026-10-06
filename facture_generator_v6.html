@@ -193,8 +193,33 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
 .forfait-item input:focus{border-color:var(--bleu)}
 
 
+/* ══ DEVIS ══ */
+.doc-toggle{display:flex;border:1.5px solid var(--bleu);border-radius:20px;overflow:hidden;margin-left:8px}
+.doc-btn{padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#fff;color:var(--bleu);border:none;cursor:pointer;font-family:'Montserrat',sans-serif;transition:.15s}
+.doc-btn.active{background:var(--bleu);color:#fff}
+.doc-btn:not(.active):hover{background:var(--bleu-p)}
+.st-pill{font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:10px;padding:1px 7px;display:inline-block;margin-top:3px}
+.st-attente{background:#fff4d6;color:#a06a00}
+.st-accepte{background:#dff5e8;color:var(--vert)}
+.st-refuse{background:#ffe5e5;color:var(--rouge)}
+.hist-filter{margin:8px 10px 0;border:1.5px solid var(--border);border-radius:7px;padding:6px 9px;font-size:11px;font-family:'Montserrat',sans-serif;color:var(--texte);background:#fff;outline:none}
+.convbtn{display:none;width:100%;margin-top:10px;padding:10px;border:none;border-radius:7px;background:var(--vert);color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif}
+.convbtn:hover{filter:brightness(1.1)}
+.dv-links{font-size:10px;color:var(--doux);margin-top:6px;line-height:1.7}
+.dv-links strong{color:var(--vert)}
+.fcond{font-size:9px;font-weight:300;color:var(--texte);line-height:1.7;margin-bottom:14px;padding:10px 13px;border:1px solid var(--bleu-c);border-radius:7px}
+.fcond .fcl{margin-bottom:4px}
+.fbpa{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.fbpa-box{border:1.5px solid var(--bleu-c);border-radius:7px;padding:10px 12px;min-height:115px;font-size:9px;font-weight:300;color:var(--doux);line-height:1.7}
+.fbpa-box strong{font-weight:700;color:var(--noir)}
+.trow.acpt span:last-child{color:var(--bleu);font-weight:700}
+
 /* ══ RESPONSIVE MOBILE ══ */
 @media (max-width: 768px) {
+  .doc-btn { padding:5px 10px; font-size:9px; }
+  .doc-toggle { margin-left:auto; flex-shrink:0; }
+  .hright { display:none; }
+  .fbpa { gap:10px; }
   /* Header */
   .header { padding:10px 14px; }
   .ll { font-size:15px; }
@@ -303,7 +328,11 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
     <div class="lb"><span class="lc">Créatrice</span></div>
   </div>
   <div class="hsep"></div>
-  <div class="hsub">Mes Factures</div>
+  <div class="hsub" id="hsub">Mes Factures</div>
+  <div class="doc-toggle">
+    <button class="doc-btn active" id="docBtnF" onclick="setDocType('facture')">Factures</button>
+    <button class="doc-btn" id="docBtnD" onclick="setDocType('devis')">Devis</button>
+  </div>
   <div class="hright">
     <span class="save-ok" id="saveOk">✓ Sauvegardé</span>
     <div class="nda">NDA 11931122693</div>
@@ -317,16 +346,23 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   <div class="sb-section">Clients</div>
   <div class="client-list" id="clientList"></div>
   <div class="sb-section" style="margin-top:4px">Historique <span id="histClient" style="font-weight:300;text-transform:none;letter-spacing:0;color:#888"></span></div>
+  <select class="hist-filter" id="histFilter" onchange="renderHist()" style="display:none">
+    <option value="">Tous les devis</option>
+    <option value="attente">En attente</option>
+    <option value="accepte">Acceptés</option>
+    <option value="refuse">Refusés</option>
+  </select>
   <div class="hist-list" id="histList"></div>
-  <button class="new-btn" onclick="newMonth()">＋ Nouveau mois</button>
-  <button class="bulk-btn" onclick="genererToutesCM()" title="Crée d'un coup les factures community management du mois (Silk, Prince Wagram, Terzo, Lyna, Trégusto, G. Lonfat)">⚡ Factures CM du mois</button>
+  <button class="new-btn" id="newMonthBtn" onclick="newMonth()">＋ Nouveau mois</button>
+  <button class="new-btn" id="newDevisSideBtn" onclick="newDevis()" style="display:none">＋ Nouveau devis</button>
+  <button class="bulk-btn" id="bulkBtn" onclick="genererToutesCM()" title="Crée d'un coup les factures community management du mois (Silk, Prince Wagram, Terzo, Lyna, Trégusto, G. Lonfat)">⚡ Factures CM du mois</button>
 </div>
 
 <!-- ══ FORMULAIRE ══ -->
 <div class="form-col">
   <div class="fc-head">
     <div class="fc-head-title" id="fcTitle">Facture</div>
-    <div class="month-nav">
+    <div class="month-nav" id="monthNav">
       <button class="mnav-btn" onclick="prevMonth()">‹</button>
       <div class="mnav-label" id="mnavLabel">—</div>
       <button class="mnav-btn" onclick="nextMonth()">›</button>
@@ -339,12 +375,30 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   </div>
 
   <div class="fsec">
-    <div class="fsec-title">Informations facture</div>
+    <div class="fsec-title" id="infoTitle">Informations facture</div>
     <div class="g2">
-      <div class="frow fnum-wrap"><label>N° Facture</label><input type="text" id="fNum" oninput="autosave()" placeholder="auto"><button class="auto-btn" onclick="genNumAuto()" title="Générer automatiquement">AUTO</button></div>
+      <div class="frow fnum-wrap"><label id="numLabel">N° Facture</label><input type="text" id="fNum" oninput="autosave()" placeholder="auto"><button class="auto-btn" onclick="genNumAuto()" title="Générer automatiquement">AUTO</button></div>
       <div class="frow"><label>Date</label><input type="date" id="fDate" oninput="autosave()"></div>
     </div>
     <div class="frow"><label>Termes de paiement</label><input type="text" id="fTerms" oninput="autosave()"></div>
+  </div>
+
+  <div class="fsec" id="devisSection" style="display:none">
+    <div class="fsec-title">Conditions du devis</div>
+    <div class="g2">
+      <div class="frow"><label>Validité (jours)</label><input type="number" id="dValid" min="1" step="1" value="30" oninput="autosave()"></div>
+      <div class="frow"><label>Acompte (%)</label><input type="number" id="dAcompte" min="0" max="100" step="5" value="0" oninput="autosave()"></div>
+    </div>
+    <div class="frow"><label>Conditions de paiement <span style="font-weight:300;text-transform:none;letter-spacing:0;color:#999">(vide = texte par défaut)</span></label><textarea id="dCond" rows="4" oninput="autosave()"></textarea></div>
+    <div class="frow"><label>Statut</label>
+      <select id="dStatut" onchange="autosave()">
+        <option value="attente">⏳ En attente</option>
+        <option value="accepte">✅ Accepté</option>
+        <option value="refuse">❌ Refusé</option>
+      </select>
+    </div>
+    <div class="dv-links" id="dvLinks"></div>
+    <button class="convbtn" id="convBtn" onclick="convertirEnFacture()">→ Transformer en facture</button>
   </div>
 
   <div class="fsec">
@@ -415,11 +469,12 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
     <button class="addbtn" onclick="addForfait()">＋ Ajouter une ligne</button>
   </div>
 
-  <button class="clearbtn" onclick="clearForm()">✦ Nouvelle facture vide</button>
-  <button class="newbtn" onclick="clearForm()">＋ Nouvelle facture vierge</button>
+  <button class="clearbtn" id="clearBtn" onclick="clearForm()">✦ Nouvelle facture vide</button>
+  <button class="newbtn" id="newBtnInv" onclick="clearForm()">＋ Nouvelle facture vierge</button>
+  <button class="newbtn" id="newDevisBtn" onclick="newDevis()" style="display:none">＋ Nouveau devis</button>
   <button class="savebtn" id="saveBtn" onclick="manualsave()">💾 Sauvegarder</button>
   <button class="printbtn" onclick="setExportTitle();window.print()">🖨 Imprimer / Exporter PDF</button>
-  <button class="delbtn-inv" onclick="deleteCurrentInvoice()">🗑 Supprimer cette facture</button>
+  <button class="delbtn-inv" id="delBtn" onclick="deleteCurrentInvoice()">🗑 Supprimer cette facture</button>
 </div>
 
 <!-- ══ PREVIEW ══ -->
@@ -439,7 +494,7 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   </button>
   <button class="mob-nav-btn" id="mobBtnForm" onclick="mobTab('form')">
     <div class="ico">📝</div>
-    <div>Facture</div>
+    <div id="mobFormLabel">Facture</div>
     <div class="ico-bar"></div>
   </button>
   <button class="mob-nav-btn" id="mobBtnPreview" onclick="mobTab('preview')">
@@ -462,8 +517,18 @@ const CLIENTS = {
   lyna:      {label:'Lyna Ristorante', nom:'Lyna Ristorante',             addr:'',                                                            siret:'',                  contact:'',                       projet:'Community management',                 desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:15}},
   opened: {label:'Open ED', nom:'OPEN ED', addr:'17 Avenue du Président Wilson\nNanterre', siret:'93431038400011', contact:'', projet:'Formation', desc:'', terms:'30 jours', mode:'horaire'},
   tregusto: {label:'Trégusto', nom:'OCOIN', addr:'143 Avenue Général de Gaulle\n78500 Sartrouville', siret:'98911920100014', contact:'', projet:'Community management', desc:'Forfait mensuel — gestion réseaux sociaux', terms:'30 jours', mode:'forfait', cycle:{debut:25}},
-  lonfat: {label:'Géraldine Lonfat', nom:'Géraldine Lonfat Production', addr:'Chemin du Devin 51\n1012 Lausanne\nSuisse', siret:'CHE-252.60', idLabel:'IDE', contact:'', projet:'Community management Instagram, Facebook, TikTok', desc:'Forfait mensuel — community management (3 publications + 3 stories / semaine, shooting bimensuel)', terms:'À réception', mode:'forfait', montant:565, cycle:{debut:23}}
+  lonfat: {label:'Géraldine Lonfat', nom:'Géraldine Lonfat Production', addr:'Chemin du Devin 51\n1012 Lausanne\nSuisse', siret:'CHE-252.60', idLabel:'IDE', contact:'', projet:'Community management Instagram, Facebook, TikTok', desc:'Forfait mensuel — community management (3 publications + 3 stories / semaine, shooting bimensuel)', terms:'À réception', mode:'forfait', montant:565, cycle:{debut:23}},
+  prospect: {label:'Autre client / prospect', nom:'', addr:'', siret:'', contact:'', projet:'', desc:'', terms:'30 jours', mode:'forfait'}
 };
+
+/* ── TYPE DE DOCUMENT : facture ou devis ──
+   Les devis sont stockés sous la clé "dv-<client>_<AAAA-MM>-<nn>" (plusieurs devis possibles par mois),
+   avec un compteur séparé "_counterdv" → numéros D-MM/001. */
+let docType = 'facture';
+let devisFactures = []; // factures générées depuis le devis affiché [{num, type, montant, period}]
+function isDevis() { return docType === 'devis'; }
+function sk(client) { return isDevis() ? 'dv-' + client : client; }
+const STATUTS = { attente:'En attente', accepte:'Accepté', refuse:'Refusé' };
 
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const MOIS3 = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
@@ -582,19 +647,38 @@ function renderForfaits() {
 
 /* ── SAUVEGARDE ── */
 let saveTimer = null;
+function collectData() {
+  const data = {
+    fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
+    cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
+    cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
+    inters, mode:invoiceMode, forfaits
+  };
+  if (isDevis()) Object.assign(data, {
+    dValid: parseInt(v('dValid')) || 30,
+    dAcompte: parseFloat(v('dAcompte')) || 0,
+    dCond: v('dCond'),
+    dStatut: v('dStatut') || 'attente',
+    factures: devisFactures
+  });
+  return data;
+}
+// Enregistre immédiatement une sauvegarde automatique en attente (avant de changer de type de document)
+async function flushSave() {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  if (!currentYM) return;
+  try { await dbSet(sk(currentClient), currentYM, collectData()); } catch (err) { console.error(err); }
+}
 function autosave() {
   updatePreview(); // immédiat
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
+    saveTimer = null;
     if (!currentYM) return;
-    const data = {
-      fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
-      cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
-      cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
-      inters, mode:invoiceMode, forfaits
-    };
+    const data = collectData();
     try {
-      await dbSet(currentClient, currentYM, data);
+      await dbSet(sk(currentClient), currentYM, data);
     } catch (err) {
       console.error('Erreur de sauvegarde automatique :', err);
       return;
@@ -615,11 +699,12 @@ async function loadInvoice(client, ym) {
   document.getElementById('mnavLabel').textContent = '…';
   let d = null;
   try {
-    d = await dbGet(client, ym);
+    d = await dbGet(sk(client), ym);
   } catch (err) {
     console.error('Erreur de chargement de la facture, utilisation des valeurs par défaut :', err);
     d = null;
   }
+  const dv = isDevis();
   if (d) {
     set('fNum', d.fNum); set('fDate', d.fDate); set('fTerms', d.fTerms);
     set('cNom', d.cNom); set('cAddr', d.cAddr); set('cSiret', d.cSiret);
@@ -628,18 +713,27 @@ async function loadInvoice(client, ym) {
     sortInters();
     forfaits = (d.forfaits||[]).map(f => ({...f, id: _forfaitIdCounter++}));
     invoiceMode = d.mode || (CLIENTS[client].mode || 'horaire');
+    if (dv) {
+      set('dValid', d.dValid || 30); set('dAcompte', d.dAcompte || 0);
+      set('dCond', d.dCond || ''); set('dStatut', d.dStatut || 'attente');
+    }
+    devisFactures = dv ? (d.factures || []) : [];
   } else {
     const c = CLIENTS[client];
-    set('fNum', ''); set('fDate', firstDayOfPeriod(ym)); set('fTerms', c.terms);
+    set('fNum', ''); set('fDate', dv ? isoLocal(new Date()) : firstDayOfPeriod(ym)); set('fTerms', c.terms);
     set('cNom', c.nom); set('cAddr', c.addr); set('cSiret', c.siret);
     set('cContact', c.contact); set('cProjet', c.projet); set('cDesc', c.desc);
     inters = [];
-    forfaits = (c.mode === 'forfait') ? [{id:_forfaitIdCounter++, desc:(c.desc||'Forfait mensuel') + (c.cycle ? ' ' + cyclePeriodText(client, ym) : ''), montant:c.montant||0}] : [];
-    if (c.cycle && cyclePeriod(client, ym)) set('fDate', isoLocal(cyclePeriod(client, ym).end));
+    const defLine = c.desc || (dv ? 'Prestation' : 'Forfait mensuel');
+    forfaits = (c.mode === 'forfait') ? [{id:_forfaitIdCounter++, desc: defLine + (!dv && c.cycle ? ' ' + cyclePeriodText(client, ym) : ''), montant:c.montant||0}] : [];
+    if (!dv && c.cycle && cyclePeriod(client, ym)) set('fDate', isoLocal(cyclePeriod(client, ym).end));
     invoiceMode = c.mode || 'horaire';
+    if (dv) { set('dValid', 30); set('dAcompte', 0); set('dCond', ''); set('dStatut', 'attente'); }
+    devisFactures = [];
   }
   renderForfaits();
   setMode(invoiceMode, true);
+  updateDocUI();
   if (!v('fNum')) {
     try { await genNumAuto(); }
     catch (err) { console.error('Erreur de numérotation automatique :', err); }
@@ -660,7 +754,10 @@ function firstDayOfMonth(ym) {
 
 /* ── PÉRIODE : mois (par défaut) ou semaine (clients facturés à la semaine, ex: Excellence) ── */
 function getPeriodType(client) { return (CLIENTS[client] && CLIENTS[client].periode === 'semaine') ? 'semaine' : 'mois'; }
-function isWeekPeriod(period) { return /^\d{4}-W\d{2}$/.test(period || ''); }
+// Une 2e facture sur la même période (ex: facture issue d'un devis) a une clé "AAAA-MM~2"
+function basePeriod(p) { return (p || '').split('~')[0]; }
+function periodSuffix(p) { const s = (p || '').split('~')[1]; return s ? ` (${s})` : ''; }
+function isWeekPeriod(period) { return /^\d{4}-W\d{2}$/.test(basePeriod(period)); }
 
 // Semaine ISO 8601 : {year, week}
 function getISOWeekInfo(d) {
@@ -688,6 +785,7 @@ function dateToPeriod(d, client) {
   return dateToYM(d);
 }
 function periodToDate(period) {
+  period = basePeriod(period);
   if (isWeekPeriod(period)) {
     const [, y, w] = /^(\d{4})-W(\d{2})$/.exec(period);
     return mondayOfISOWeek(+y, +w);
@@ -695,10 +793,12 @@ function periodToDate(period) {
   return ymToDate(period);
 }
 function firstDayOfPeriod(period) {
+  period = basePeriod(period);
   if (isWeekPeriod(period)) return periodToDate(period).toISOString().split('T')[0];
   return firstDayOfMonth(period);
 }
 function periodLabel(period) {
+  if (period && period.includes('~')) return periodLabel(basePeriod(period)) + periodSuffix(period);
   if (!period) return '—';
   if (isWeekPeriod(period)) {
     const [, , w] = /^(\d{4})-W(\d{2})$/.exec(period);
@@ -711,9 +811,9 @@ function periodLabel(period) {
 }
 
 /* ── NAVIGATION MOIS / SEMAINE ── */
-function ymToDate(ym) { const [y,m] = ym.split('-'); return new Date(+y, +m-1, 1); }
+function ymToDate(ym) { const [y,m] = basePeriod(ym).split('-'); return new Date(+y, +m-1, 1); }
 function dateToYM(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
-function currentYMLabel(ym) { if(!ym) return '—'; const [y,m] = ym.split('-'); return MOIS[+m-1] + ' ' + y; }
+function currentYMLabel(ym) { if(!ym) return '—'; const [y,m] = basePeriod(ym).split('-'); return MOIS[+m-1] + ' ' + y; }
 function updateNavLabel() {
   document.getElementById('mnavLabel').textContent = periodLabel(currentYM);
   document.getElementById('fcTitle').textContent = CLIENTS[currentClient].label;
@@ -798,13 +898,15 @@ function renderClients() {
     div.onclick = async () => {
       document.querySelectorAll('.citem').forEach(el => el.classList.remove('active'));
       div.classList.add('active');
-      const keys = await dbList(k);
-      await loadInvoice(k, keys.length ? keys[0] : dateToYM(new Date()));
+      await flushSave();
+      const keys = await dbList(sk(k));
+      if (isDevis() && !keys.length) await newDevis(k);
+      else await loadInvoice(k, keys.length ? keys[0] : dateToYM(new Date()));
       if (window.innerWidth <= 768) mobTab('form');
     };
     c.appendChild(div);
     // Badge async
-    dbList(k).then(keys => {
+    dbList(sk(k)).then(keys => {
       const badge = div.querySelector('.cbadge');
       if (keys.length > 0) {
         if (!badge) div.innerHTML += `<span class="cbadge">${keys.length}</span>`;
@@ -820,18 +922,34 @@ async function renderHist() {
   if (!c) return;
   c.innerHTML = '<div class="no-hist" style="font-size:10px;color:#aaa;padding:8px;">Chargement…</div>';
   let keys = [];
+  const dv = isDevis();
+  const filtre = dv ? v('histFilter') : '';
   try {
-    keys = await dbList(currentClient);
+    keys = await dbList(sk(currentClient));
   } catch (err) {
     console.error('Erreur de chargement de l’historique :', err);
     c.innerHTML = '<div class="no-hist">Historique indisponible</div>';
     return;
   }
   c.innerHTML = '';
-  if (!keys.length) { c.innerHTML = '<div class="no-hist">Aucune facture sauvegardée</div>'; return; }
+  if (!keys.length) { c.innerHTML = `<div class="no-hist">Aucun${dv?' devis sauvegardé':'e facture sauvegardée'}</div>`; return; }
+  let shown = 0;
   for (const ym of keys) {
     let data = null;
-    try { data = await dbGet(currentClient, ym); } catch (err) { console.error('Erreur historique :', err); }
+    try { data = await dbGet(sk(currentClient), ym); } catch (err) { console.error('Erreur historique :', err); }
+    if (dv) {
+      const st = (data && data.dStatut) || 'attente';
+      if (filtre && st !== filtre) continue;
+      const total = data ? docTotal(data) : 0;
+      const nf = data && data.factures && data.factures.length ? ` · 🧾 ${data.factures.length}` : '';
+      const div = document.createElement('div');
+      div.className = 'hitem' + (ym===currentYM?' active':'');
+      div.innerHTML = `<div><div class="hdate">N° ${(data&&data.fNum)||'—'}</div><div style="font-size:9px;color:#aaa;margin-top:1px">${data?fmtDate(data.fDate):''}${data&&data.cProjet?' · '+data.cProjet:''}</div><span class="st-pill st-${st}">${STATUTS[st]}${nf}</span></div><div class="hamt">${total?fmtEur(total):''}</div>`;
+      div.onclick = () => { loadInvoice(currentClient, ym); if(window.innerWidth<=768) mobTab('form'); };
+      c.appendChild(div);
+      shown++;
+      continue;
+    }
     let total = 0, num = '';
     if (data) {
       if ((data.mode||'horaire') === 'forfait') {
@@ -847,9 +965,26 @@ async function renderHist() {
     div.onclick = () => { loadInvoice(currentClient, ym); if(window.innerWidth<=768) mobTab('form'); };
     c.appendChild(div);
   }
+  if (dv && !shown) c.innerHTML = '<div class="no-hist">Aucun devis avec ce statut</div>';
 }
 
 async function deleteCurrentInvoice() {
+  if (isDevis()) {
+    if (!confirm(`Supprimer le devis N° ${v('fNum')||'—'} ?`)) return;
+    clearTimeout(saveTimer); saveTimer = null;
+    // Si c'était le dernier numéro attribué ce mois-ci, on libère le numéro
+    const m = /^D-\d{2}\/(\d{3})$/.exec(v('fNum'));
+    const ym = currentYM.slice(0, 7);
+    if (m) {
+      const cnt = await dbGet('_counterdv', ym);
+      if (cnt && cnt.n === +m[1]) await dbSet('_counterdv', ym, { n: cnt.n - 1 });
+    }
+    await dbDelete(sk(currentClient), currentYM);
+    const keys = await dbList(sk(currentClient));
+    if (keys.length) await loadInvoice(currentClient, keys[0]); else await newDevis(currentClient);
+    renderClients();
+    return;
+  }
   if (!confirm(`Supprimer la facture de ${currentYMLabel(currentYM)} ?`)) return;
   await dbDelete(currentClient, currentYM);
   const keys = await dbList(currentClient);
@@ -957,7 +1092,7 @@ function cleanTitlePart(s) { return (s || '').toString().replace(/[\\/:*?"<>|]+/
 function buildExportFilename() {
   const client = cleanTitlePart(v('cNom') || (CLIENTS[currentClient] && CLIENTS[currentClient].label) || 'Client');
   const num = cleanTitlePart(v('fNum'));
-  return `Little Créatrice Facture ${client}${num ? ' N°' + num : ''}`;
+  return `Little Créatrice ${isDevis() ? 'Devis' : 'Facture'} ${client}${num ? ' N°' + num : ''}`;
 }
 const DEFAULT_DOC_TITLE = 'Little Créatrice — Factures';
 function setExportTitle() { document.title = buildExportFilename(); }
@@ -983,6 +1118,21 @@ function updatePreview() {
     });
   }
   const ah=addr.replace(/\n/g,'<br>');
+  const dv = isDevis();
+  const acpt = dv ? (parseFloat(v('dAcompte'))||0) : 0;
+  const valid = parseInt(v('dValid')) || 30;
+  const validUntil = date ? addDaysISO(date, valid) : '';
+  const totalsDevis = dv && acpt > 0
+    ? `<div class="trow acpt"><span>Acompte à la commande (${acpt} %)</span><span>${fmtEur(totalM*acpt/100)}</span></div>
+       <div class="trow"><span>Solde à la livraison</span><span>${fmtEur(totalM - totalM*acpt/100)}</span></div>` : '';
+  const conds = (v('dCond').trim() || defaultConditions()).replace(/\n/g,'<br>');
+  const signBlock = dv
+    ? `<div class="fcond"><div class="fcl">Conditions</div>Devis valable ${valid} jours à compter de sa date d'émission${validUntil?`, soit jusqu'au ${fmtDate(validUntil)}`:''}.<br>${conds}</div>
+       <div class="fbpa">
+         <div class="fbpa-box"><div class="fcl">Le prestataire</div><strong>Noura Fassih</strong><br>Little Créatrice<br>Le ${fmtDate(date)}</div>
+         <div class="fbpa-box"><div class="fcl">Bon pour accord, le client</div>Date, signature et cachet, précédés de la mention manuscrite « Bon pour accord »</div>
+       </div>`
+    : `<div class="fsign">Merci de votre confiance,<br>Bien cordialement,<br><br><strong>Noura Fassih</strong></div>`;
   document.getElementById('fPrev').innerHTML=`
     <div class="fac-band">
       <div style="display:flex;align-items:center">
@@ -998,12 +1148,14 @@ function updatePreview() {
     </div>
     <div class="fac-body">
       <div class="fac-top">
-        <div><div class="fac-mot">Facture</div><div class="fac-num">N° ${num||'—'}</div></div>
-        <div class="fac-dr"><strong>Date :</strong> ${fmtDate(date)}<br>${terms?`<strong>Règlement :</strong> ${terms}`:''}</div>
+        <div><div class="fac-mot">${dv?'Devis':'Facture'}</div><div class="fac-num">N° ${num||'—'}</div></div>
+        <div class="fac-dr"><strong>Date :</strong> ${fmtDate(date)}<br>${dv
+          ? (validUntil?`<strong>Valable jusqu'au :</strong> ${fmtDate(validUntil)}`:'')
+          : (terms?`<strong>Règlement :</strong> ${terms}`:'')}</div>
       </div>
       <div class="fdiv"></div>
       <div class="f2c">
-        <div><div class="fcl">Facturé à</div><div class="fcv"><strong>${nom}</strong><br>${ah}${siret?`<br><strong>${(CLIENTS[currentClient]&&CLIENTS[currentClient].idLabel)||'SIRET'} :</strong> ${siret}`:''}${contact?`<br>${contact}`:''}</div></div>
+        <div><div class="fcl">${dv?'Client':'Facturé à'}</div><div class="fcv"><strong>${nom}</strong><br>${ah}${siret?`<br><strong>${(CLIENTS[currentClient]&&CLIENTS[currentClient].idLabel)||'SIRET'} :</strong> ${siret}`:''}${contact?`<br>${contact}`:''}</div></div>
         <div><div class="fcl">Prestation</div><div class="fcv">${projet?`<strong>${projet}</strong><br>`:''}${desc?desc.replace(/\n/g,'<br>'):'&nbsp;'}</div></div>
       </div>
       ${projet||desc?`<div class="fdesc"><strong>Description</strong>${projet}${desc?' — '+desc:''}</div>`:''}
@@ -1017,8 +1169,9 @@ function updatePreview() {
         ${invoiceMode!=='forfait'?`<div class="trow"><span>Total heures</span><span>${totalH}h</span></div>
         <div class="trow"><span>Sous-total</span><span>${fmtEur(totalM)}</span></div>`:''}
         <div class="trow tot"><span>Total TTC</span><span>${fmtEur(totalM)}</span></div>
+        ${totalsDevis}
       </div></div>
-      <div class="fsign">Merci de votre confiance,<br>Bien cordialement,<br><br><strong>Noura Fassih</strong></div>
+      ${signBlock}
       <div class="frib">
         <div class="frib-t">Coordonnées bancaires — Virement souhaité</div>
         <div class="frib-g">
@@ -1032,11 +1185,21 @@ function updatePreview() {
       <div class="ftva">TVA non applicable — article 293 B du CGI<br>Déclaration d'activité enregistrée sous le numéro 11931122693 auprès du préfet de la région d'Île-de-France.</div>
     </div>`;
   setExportTitle();
+  updateDevisUI();
 }
 
 
 /* ── NUMÉRO AUTO ── */
-async function nextNumFor(period) {
+async function nextNumFor(period, kind = docType) {
+  if (kind === 'devis') {
+    // Devis : compteur séparé par mois → D-MM/001
+    const ym = period.slice(0, 7);
+    const cnt = await dbGet('_counterdv', ym);
+    const n = (cnt && cnt.n) ? cnt.n + 1 : 1;
+    await dbSet('_counterdv', ym, { n });
+    return 'D-' + ym.split('-')[1] + '/' + String(n).padStart(3,'0');
+  }
+  period = basePeriod(period);
   // Préfixe : "Snn" pour une période hebdomadaire (ex: Excellence), sinon "mm" du mois
   const prefix = isWeekPeriod(period) ? 'S' + period.split('-W')[1].padStart(2,'0') : period.split('-')[1];
   // Compteur persistant pour cette période (partagé entre clients qui utilisent la même clé de période)
@@ -1057,6 +1220,7 @@ async function genNumAuto() {
    Ex. Trégusto (debut 25), facture Septembre 2026 = du 25 août au 24 septembre 2026. */
 function hasCycle(client) { return !!(CLIENTS[client] && CLIENTS[client].cycle); }
 function cyclePeriod(client, ym) {
+  ym = basePeriod(ym);
   if (!hasCycle(client) || !ym || isWeekPeriod(ym)) return null;
   const debut = CLIENTS[client].cycle.debut;
   const [y, m] = ym.split('-').map(Number);
@@ -1160,7 +1324,7 @@ function updateCycleZone() {
   const info = document.getElementById('cycleInfo');
   const btn = document.getElementById('dupBtn');
   if (!zone) return;
-  const on = hasCycle(currentClient) && currentYM && !isWeekPeriod(currentYM);
+  const on = !isDevis() && hasCycle(currentClient) && currentYM && !isWeekPeriod(currentYM);
   zone.style.display = on ? '' : 'none';
   if (!on) return;
   info.style.display = 'block';
@@ -1416,14 +1580,10 @@ async function manualsave() {
   const btn = document.getElementById('saveBtn');
   if(btn){ btn.textContent='⏳ Sauvegarde...'; btn.classList.add('saving'); }
   if (!currentYM) return;
-  const data = {
-    fNum:v('fNum'), fDate:v('fDate'), fTerms:v('fTerms'),
-    cNom:v('cNom'), cAddr:v('cAddr'), cSiret:v('cSiret'),
-    cContact:v('cContact'), cProjet:v('cProjet'), cDesc:v('cDesc'),
-    inters, mode:invoiceMode, forfaits
-  };
+  clearTimeout(saveTimer); saveTimer = null;
+  const data = collectData();
   try {
-    await dbSet(currentClient, currentYM, data);
+    await dbSet(sk(currentClient), currentYM, data);
   } catch (err) {
     console.error('Erreur de sauvegarde :', err);
     if (btn) { btn.textContent = '⚠ Échec, réessayer'; btn.classList.remove('saving'); }
@@ -1435,6 +1595,154 @@ async function manualsave() {
   renderHist();
 }
 
+
+/* ══ DEVIS ══ */
+function addDaysISO(iso, n) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return isoLocal(new Date(y, m - 1, d + n));
+}
+function round2(n) { return Math.round((parseFloat(n) || 0) * 100) / 100; }
+function linesTotal(mode, ints, forfs) {
+  return (mode || 'horaire') === 'forfait'
+    ? (forfs || []).reduce((s, f) => s + (parseFloat(f.montant) || 0), 0)
+    : (ints || []).reduce((s, i) => s + (i.h * i.p), 0);
+}
+function docTotal(d) { return linesTotal(d.mode, d.inters, d.forfaits); }
+
+function defaultConditions() {
+  const t = v('fTerms') || '30 jours';
+  const a = parseFloat(v('dAcompte')) || 0;
+  return (a > 0 ? `Acompte de ${a} % à la signature du devis, solde à réception de la facture finale. ` : '')
+    + `Règlement par virement bancaire, délai de paiement : ${t}. `
+    + `En cas de retard de paiement, pénalités au taux de 3 fois le taux d'intérêt légal et indemnité forfaitaire de 40 € pour frais de recouvrement (art. L441-10 du Code de commerce).`;
+}
+
+// Crée un nouveau devis (clé AAAA-MM-nn du mois en cours)
+async function newDevis(client) {
+  client = client || currentClient;
+  await flushSave();
+  const ym = dateToYM(new Date());
+  const keys = (await dbList(sk(client))).filter(k => k.startsWith(ym + '-'));
+  const n = keys.reduce((m, k) => Math.max(m, +k.split('-')[2] || 0), 0) + 1;
+  await loadInvoice(client, ym + '-' + String(n).padStart(2, '0'));
+  if (window.innerWidth <= 768) mobTab('form');
+}
+
+// Bascule Factures / Devis
+async function setDocType(t) {
+  if (t === docType) return;
+  await flushSave();
+  docType = t;
+  const keys = await dbList(sk(currentClient));
+  if (t === 'devis') {
+    if (keys.length) await loadInvoice(currentClient, keys[0]);
+    else await newDevis(currentClient);
+  } else {
+    await loadInvoice(currentClient, keys.length ? keys[0] : dateToPeriod(new Date(), currentClient));
+  }
+}
+
+function updateDocUI() {
+  const dv = isDevis();
+  const show = (id, on, disp = '') => { const el = document.getElementById(id); if (el) el.style.display = on ? disp : 'none'; };
+  document.getElementById('docBtnF').classList.toggle('active', !dv);
+  document.getElementById('docBtnD').classList.toggle('active', dv);
+  document.getElementById('hsub').textContent = dv ? 'Mes Devis' : 'Mes Factures';
+  document.getElementById('infoTitle').textContent = dv ? 'Informations devis' : 'Informations facture';
+  document.getElementById('numLabel').textContent = dv ? 'N° Devis' : 'N° Facture';
+  document.getElementById('delBtn').textContent = dv ? '🗑 Supprimer ce devis' : '🗑 Supprimer cette facture';
+  document.getElementById('mobFormLabel').textContent = dv ? 'Devis' : 'Facture';
+  show('devisSection', dv);
+  show('monthNav', !dv, 'flex');
+  show('newMonthBtn', !dv);
+  show('bulkBtn', !dv);
+  show('newDevisSideBtn', dv);
+  show('clearBtn', !dv);
+  show('newBtnInv', !dv);
+  show('newDevisBtn', dv);
+  show('histFilter', dv);
+  updateCycleZone();
+  updateDevisUI();
+}
+
+function updateDevisUI() {
+  const btn = document.getElementById('convBtn');
+  const links = document.getElementById('dvLinks');
+  const cond = document.getElementById('dCond');
+  if (!btn || !links) return;
+  if (!isDevis()) { btn.style.display = 'none'; links.innerHTML = ''; return; }
+  if (cond) cond.placeholder = defaultConditions();
+  const acpt = parseFloat(v('dAcompte')) || 0;
+  const hasAcpt = devisFactures.some(f => f.type === 'acompte');
+  btn.style.display = v('dStatut') === 'accepte' ? 'block' : 'none';
+  btn.textContent = hasAcpt ? '→ Créer la facture de solde'
+    : (acpt > 0 ? '→ Créer la facture (acompte ou totale)' : '→ Transformer en facture');
+  const TYPES = { acompte:"Facture d'acompte", solde:'Facture de solde', totale:'Facture' };
+  links.innerHTML = devisFactures.length
+    ? devisFactures.map(f => `🧾 ${TYPES[f.type] || 'Facture'} <strong>N° ${f.num}</strong> (${fmtEur(f.montant)})`).join('<br>')
+    : '';
+}
+
+// Transforme le devis accepté en facture (totale, acompte ou solde)
+async function convertirEnFacture() {
+  if (!isDevis()) return;
+  await flushSave();
+  const client = currentClient, devisKey = currentYM;
+  const devis = collectData();
+  const total = docTotal(devis);
+  const acpt = devis.dAcompte || 0;
+  const facts = devis.factures || [];
+  const acptFact = facts.find(f => f.type === 'acompte');
+  const dejaFact = facts.find(f => f.type === 'totale' || f.type === 'solde');
+  if (dejaFact && !confirm(`Ce devis a déjà été facturé (facture N° ${dejaFact.num}).\nCréer quand même une nouvelle facture ?`)) return;
+
+  let type = 'totale';
+  if (acptFact) type = 'solde';
+  else if (acpt > 0) type = confirm(`Ce devis prévoit un acompte de ${acpt} % (${fmtEur(total * acpt / 100)}).\n\nOK = créer la facture d'acompte\nAnnuler = facturer la totalité (${fmtEur(total)})`) ? 'acompte' : 'totale';
+
+  const ref = `devis N° ${devis.fNum}`;
+  const proj = devis.cProjet ? ' — ' + devis.cProjet : '';
+  let mode = devis.mode || 'horaire', ints = [], forfs = [];
+  if (type === 'acompte') {
+    mode = 'forfait';
+    forfs = [{ desc: `Acompte ${acpt} % sur ${ref}${proj}`, montant: round2(total * acpt / 100) }];
+  } else if (type === 'solde') {
+    mode = 'forfait';
+    forfs = [
+      { desc: `Prestation selon ${ref}${proj}`, montant: round2(total) },
+      { desc: `Déduction de l'acompte versé (facture N° ${acptFact.num})`, montant: -round2(acptFact.montant) }
+    ];
+  } else {
+    ints = JSON.parse(JSON.stringify(devis.inters || [])).map(({ id, ...r }) => r);
+    forfs = JSON.parse(JSON.stringify(devis.forfaits || [])).map(({ id, ...r }) => r);
+  }
+
+  // Toujours une facture séparée : on réutilise la période si elle est libre (ou si la facture y est vide),
+  // sinon on prend la clé suivante "AAAA-MM~2", "~3"...
+  const base = dateToPeriod(new Date(), client);
+  let period = base, existing = null;
+  for (let i = 1; i < 50; i++) {
+    period = i === 1 ? base : base + '~' + i;
+    existing = await dbGet(client, period);
+    if (!existing || !docTotal(existing)) break;
+  }
+  const data = {
+    fNum: (existing && existing.fNum) || await nextNumFor(period, 'facture'), fDate: isoLocal(new Date()), fTerms: devis.fTerms,
+    cNom: devis.cNom, cAddr: devis.cAddr, cSiret: devis.cSiret, cContact: devis.cContact,
+    cProjet: devis.cProjet, cDesc: (devis.cDesc ? devis.cDesc + ' — ' : '') + 'Selon ' + ref,
+    inters: ints, mode, forfaits: forfs
+  };
+  await dbSet(client, period, data);
+
+  // Garder la trace dans le devis
+  facts.push({ num: data.fNum, type, montant: round2(linesTotal(mode, ints, forfs)), period });
+  devis.factures = facts;
+  await dbSet('dv-' + client, devisKey, devis);
+
+  docType = 'facture';
+  await loadInvoice(client, period);
+  if (window.innerWidth <= 768) mobTab('form');
+}
 
 /* ── NAVIGATION MOBILE ── */
 function mobTab(tab) {
@@ -1480,8 +1788,8 @@ const lastActive = isLocal ? localStorage.getItem('lc2_last') : sessionStorage.g
 async function initLoad() {
   try {
     if (lastActive) {
-      try { const {c,ym}=JSON.parse(lastActive); await loadInvoice(c,ym); }
-      catch(e){ await loadInvoice('affida', todayYM); }
+      try { const {c,ym,t}=JSON.parse(lastActive); if (t === 'devis') docType = 'devis'; await loadInvoice(c,ym); }
+      catch(e){ docType = 'facture'; await loadInvoice('affida', todayYM); }
     } else {
       await loadInvoice('affida', todayYM);
     }
@@ -1495,7 +1803,7 @@ initMobileLayout();
 window.addEventListener('resize', () => { if(window.innerWidth > 768) { document.querySelector('.sidebar').classList.remove('mob-open'); document.querySelector('.preview-col').classList.remove('mob-open'); document.querySelector('.form-col').style.display=''; } });
 // mémoriser le dernier actif dans la session
 setInterval(() => {
-  const val = JSON.stringify({c:currentClient,ym:currentYM});
+  const val = JSON.stringify({c:currentClient,ym:currentYM,t:docType});
   isLocal ? localStorage.setItem('lc2_last', val) : sessionStorage.setItem('lc2_last', val);
 }, 2000);
 // filtre ical live
