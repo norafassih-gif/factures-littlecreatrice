@@ -84,6 +84,8 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--texte)
 .dup-btn:hover{color:var(--bleu);background:var(--bleu-p)}
 .del-btn:hover{color:var(--rouge);background:#ffeaea}
 .delbtn:hover{color:var(--rouge);background:#ffeaea}
+.mat-sel{width:100%;margin-bottom:7px;font-size:11px;font-family:'Montserrat',sans-serif;font-weight:600;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--bleu);background:#fff;outline:none;cursor:pointer}
+.mat-sel:focus{border-color:var(--bleu)}
 .ii-bot{display:flex;align-items:center;gap:8px}
 .ii-bot .lbl{font-size:9px;font-weight:700;color:var(--bleu);text-transform:uppercase;letter-spacing:.04em}
 .ii-bot input{width:70px;font-size:12px;font-family:'Montserrat',sans-serif;font-weight:600;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--texte);background:#fff;outline:none;text-align:right;transition:.15s}
@@ -1006,7 +1008,10 @@ async function deleteCurrentInvoice() {
 }
 
 /* ── INTERVENTIONS ── */
-function addInter(date='',desc='',h=4,p=50) {
+// Valeurs par défaut d'une nouvelle ligne selon le client (Excellence : 7 h à 45 €/h)
+const CLIENT_DEFAULT_HOURS = { excellence: 7 };
+function defaultHours() { return CLIENT_DEFAULT_HOURS[currentClient] || 4; }
+function addInter(date='',desc='',h=defaultHours(),p=defaultTarif()) {
   inters.push({id: _interIdCounter++, date, desc, h, p});
   sortInters(); renderInters(); autosave();
 }
@@ -1060,6 +1065,30 @@ function renderInters() {
 
     top.append(di, ds, btnDup, btnDel);
 
+    // Ligne matière / classe (si le client a des presets) : remplit la description et le tarif
+    let mat = null;
+    const presetsList = PRESETS[currentClient];
+    if (presetsList && presetsList.length) {
+      mat = document.createElement('select');
+      mat.className = 'mat-sel';
+      const opt0 = document.createElement('option');
+      opt0.value = ''; opt0.textContent = 'Choisir la matière / la classe…';
+      mat.appendChild(opt0);
+      presetsList.forEach((p, idx) => {
+        const o = document.createElement('option');
+        o.value = String(idx); o.textContent = p.label;
+        if ((i.desc || '') === p.label) o.selected = true;
+        mat.appendChild(o);
+      });
+      mat.onchange = () => {
+        if (mat.value === '') return;
+        const p = presetsList[+mat.value];
+        i.desc = p.label;
+        i.p = p.tarif;
+        renderInters(); autosave();
+      };
+    }
+
     // Ligne 2 : heures + tarif + total
     const bot = document.createElement('div');
     bot.className = 'ii-bot';
@@ -1079,7 +1108,7 @@ function renderInters() {
     ip.onchange = () => { i.p = parseFloat(ip.value) || 0; calc.textContent = fmtEur(i.h * i.p); autosave(); };
 
     bot.append(lh, ih, lp, ip, calc);
-    wrap.append(top, bot);
+    if (mat) wrap.append(top, mat, bot); else wrap.append(top, bot);
     c.appendChild(wrap);
   });
 }
