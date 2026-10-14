@@ -54,6 +54,26 @@ body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--texte)
 .dup-info{display:none;font-size:10px;color:var(--doux);background:var(--bleu-p);border:1px solid var(--bleu-c);border-radius:6px;padding:7px 9px;margin-bottom:8px;line-height:1.5}
 .bulk-btn{margin:0 10px 10px;padding:9px;border:none;border-radius:7px;background:var(--vert);color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif}
 .bulk-btn:hover{filter:brightness(1.1)}
+/* ══ MODALE FACTURES CM ══ */
+.cm-modal{display:none;position:fixed;inset:0;background:rgba(17,17,17,.45);z-index:9999;align-items:center;justify-content:center;padding:16px}
+.cm-box{background:#fff;border-radius:12px;width:100%;max-width:440px;max-height:90vh;overflow:auto;padding:18px 18px 14px;font-family:'Montserrat',sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.cm-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--bleu);margin-bottom:10px}
+.cm-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;font-size:14px}
+.cm-nav button{border:1.5px solid var(--border);background:#fff;border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:16px}
+.cm-nav button:hover{background:var(--bleu-p);border-color:var(--bleu)}
+.cm-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--bleu-c);background:var(--bleu-p);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:12px}
+.cm-row.cm-off{cursor:default;background:#f7f7f7;border-color:#e6e6e6;color:#777}
+.cm-row input{accent-color:var(--vert);width:16px;height:16px}
+.cm-dot{width:16px;text-align:center;font-weight:700;color:var(--vert)}
+.cm-name{flex:1;font-weight:600}
+.cm-name small{display:block;font-weight:300;font-size:10px;color:#666;margin-top:2px}
+.cm-amt{font-weight:600;font-size:11px;text-align:right}
+.cm-empty{padding:24px;text-align:center;font-size:12px;color:#888}
+.cm-foot{display:flex;gap:8px;margin-top:12px}
+.cm-go{flex:1;padding:11px;border:none;border-radius:8px;background:var(--vert);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif}
+.cm-go:disabled{background:#bbb;cursor:not-allowed}
+.cm-cancel{padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:11px;cursor:pointer;font-family:'Montserrat',sans-serif}
+
 
 /* ── COLONNE 2 : formulaire ── */
 .form-col{width:360px;min-width:360px;background:var(--blanc);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
@@ -357,7 +377,7 @@ table.ft tbody td.b{font-weight:700;color:var(--noir)}
   <div class="hist-list" id="histList"></div>
   <button class="new-btn" id="newMonthBtn" onclick="newMonth()">＋ Nouveau mois</button>
   <button class="new-btn" id="newDevisSideBtn" onclick="newDevis()" style="display:none">＋ Nouveau devis</button>
-  <button class="bulk-btn" id="bulkBtn" onclick="genererToutesCM()" title="Crée d'un coup les factures community management du mois (Silk, Prince Wagram, Terzo, Lyna, Trégusto, G. Lonfat)">⚡ Factures CM du mois</button>
+  <button class="bulk-btn" id="bulkBtn" onclick="genererToutesCM()" title="Génère d'un clic les factures community management du mois suivant (mêmes montants que le mois précédent, période et numéro calculés automatiquement)">⚡ Factures CM du mois suivant</button>
 </div>
 
 <!-- ══ FORMULAIRE ══ -->
@@ -1334,32 +1354,118 @@ async function dupliquerMoisSuivant() {
   await loadInvoice(currentClient, target);
 }
 
-async function genererToutesCM() {
-  const defYM = dateToYM(new Date());
-  const ans = prompt('Générer les factures community management de quel mois ? (format AAAA-MM)', defYM);
-  if (!ans) return;
-  const target = ans.trim();
-  if (!/^\d{4}-\d{2}$/.test(target)) { alert('Format attendu : AAAA-MM (ex: ' + defYM + ')'); return; }
-  const report = [];
-  for (const [k, c] of Object.entries(CLIENTS)) {
-    if (!c.cycle) continue;
+/* ── BOUTON AUTO : factures CM du mois suivant ──
+   Le bouton calcule tout seul le mois à facturer (le mois qui suit la dernière facture CM),
+   propose un récapitulatif (période, montant, N°) puis génère toutes les factures en un clic. */
+function cmClients() { return Object.entries(CLIENTS).filter(([k, c]) => c.cycle); }
+function prevYM(ym) { const d = ymToDate(ym); d.setMonth(d.getMonth() - 1); return dateToYM(d); }
+
+// Mois à facturer par défaut : celui qui suit la dernière facture de chaque client récurrent
+// (on ignore un client dont l'historique est resté très en retard, ex. contrat arrêté).
+async function nextCMMonth() {
+  const latest = [];
+  for (const [k] of cmClients()) {
+    const keys = (await dbList(k)).filter(x => !isWeekPeriod(x)).map(basePeriod).sort();
+    if (keys.length) latest.push(keys[keys.length - 1]);
+  }
+  if (!latest.length) return dateToYM(new Date());
+  const gmax = latest.slice().sort().pop();
+  const actifs = latest.filter(l => l >= prevYM(gmax));
+  return nextYM(actifs.sort()[0]);
+}
+
+async function refreshBulkBtn() {
+  const b = document.getElementById('bulkBtn');
+  if (!b) return;
+  try { b.textContent = '⚡ Factures CM ' + currentYMLabel(await nextCMMonth()); } catch (e) { /* garde le libellé par défaut */ }
+}
+
+async function planCM(target) {
+  const rows = [];
+  for (const [k, c] of cmClients()) {
     try {
       const existing = await dbGet(k, target);
-      if (existing) { report.push(`• ${c.label} : déjà faite (N° ${existing.fNum||'—'})`); continue; }
+      if (existing) { rows.push({ k, c, state: 'done', num: existing.fNum || '—' }); continue; }
       const prev = await findPreviousInvoice(k, target);
-      if (!prev && !c.montant) { report.push(`• ${c.label} : aucune facture précédente à dupliquer`); continue; }
-      const data = await buildRecurring(k, target, prev ? prev.data : null);
-      await dbSet(k, target, data);
-      const tot = data.forfaits.reduce((s,f)=>s+(parseFloat(f.montant)||0),0);
-      report.push(`• ${c.label} : N° ${data.fNum} — ${fmtEur(tot)} (${cyclePeriodText(k, target)})`);
+      if (!prev && !c.montant) { rows.push({ k, c, state: 'none' }); continue; }
+      const lines = prev ? (prev.data.forfaits || []) : [{ montant: c.montant }];
+      const total = lines.reduce((s, f) => s + (parseFloat(f.montant) || 0), 0) || c.montant || 0;
+      rows.push({ k, c, state: 'todo', prev, total });
+    } catch (err) { console.error(err); rows.push({ k, c, state: 'error' }); }
+  }
+  return rows;
+}
+
+let cmTarget = '', cmRows = [], cmChecked = new Set();
+
+async function genererToutesCM() {
+  const m = document.getElementById('cmModal');
+  m.style.display = 'flex';
+  document.getElementById('cmBody').innerHTML = '<div class="cm-empty">Calcul en cours…</div>';
+  await flushSave();
+  cmTarget = await nextCMMonth();
+  await renderCMModal();
+}
+
+async function renderCMModal() {
+  cmRows = await planCM(cmTarget);
+  cmChecked = new Set(cmRows.filter(r => r.state === 'todo').map(r => r.k));
+  drawCMModal();
+}
+
+function drawCMModal() {
+  const todo = cmRows.filter(r => r.state === 'todo');
+  const html = cmRows.map(r => {
+    const per = cyclePeriodText(r.k, cmTarget);
+    if (r.state === 'todo') {
+      return `<label class="cm-row"><input type="checkbox" ${cmChecked.has(r.k) ? 'checked' : ''} onchange="cmToggle('${r.k}')">
+        <span class="cm-name">${r.c.label}<small>${per}${r.prev ? '' : ' · montant par défaut'}</small></span>
+        <span class="cm-amt">${fmtEur(r.total)}</span></label>`;
+    }
+    const txt = r.state === 'done' ? `déjà faite · N° ${r.num}` : r.state === 'none' ? 'aucune facture précédente' : 'erreur';
+    return `<div class="cm-row cm-off"><span class="cm-dot">${r.state === 'done' ? '✓' : '–'}</span>
+      <span class="cm-name">${r.c.label}<small>${per}</small></span><span class="cm-amt">${txt}</span></div>`;
+  }).join('');
+  const nb = cmChecked.size;
+  const total = cmRows.filter(r => cmChecked.has(r.k)).reduce((s, r) => s + r.total, 0);
+  document.getElementById('cmBody').innerHTML = `
+    <div class="cm-nav"><button onclick="cmShift(-1)">‹</button><strong>${currentYMLabel(cmTarget)}</strong><button onclick="cmShift(1)">›</button></div>
+    ${html}
+    <div class="cm-foot">
+      <button class="cm-go" ${nb ? '' : 'disabled'} onclick="cmGenerate()">Générer ${nb} facture${nb > 1 ? 's' : ''}${nb ? ' · ' + fmtEur(total) : ''}</button>
+      <button class="cm-cancel" onclick="closeCMModal()">Annuler</button>
+    </div>`;
+}
+
+function cmToggle(k) { cmChecked.has(k) ? cmChecked.delete(k) : cmChecked.add(k); drawCMModal(); }
+async function cmShift(d) {
+  const dt = ymToDate(cmTarget); dt.setMonth(dt.getMonth() + d); cmTarget = dateToYM(dt);
+  await renderCMModal();
+}
+function closeCMModal() { document.getElementById('cmModal').style.display = 'none'; }
+
+async function cmGenerate() {
+  const body = document.getElementById('cmBody');
+  body.innerHTML = '<div class="cm-empty">Génération en cours…</div>';
+  const report = [];
+  // séquentiel : les numéros se suivent dans l'ordre de la liste
+  for (const r of cmRows) {
+    if (!cmChecked.has(r.k) || r.state !== 'todo') continue;
+    try {
+      const data = await buildRecurring(r.k, cmTarget, r.prev ? r.prev.data : null);
+      await dbSet(r.k, cmTarget, data);
+      const tot = data.forfaits.reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+      report.push(`<div class="cm-row cm-off"><span class="cm-dot">✓</span><span class="cm-name">${r.c.label}<small>N° ${data.fNum} · ${cyclePeriodText(r.k, cmTarget)}</small></span><span class="cm-amt">${fmtEur(tot)}</span></div>`);
     } catch (err) {
       console.error(err);
-      report.push(`• ${c.label} : erreur`);
+      report.push(`<div class="cm-row cm-off"><span class="cm-dot">!</span><span class="cm-name">${r.c.label}<small>erreur, rien n'a été créé</small></span></div>`);
     }
   }
-  alert(`Factures CM — ${currentYMLabel(target)}\n\n` + report.join('\n'));
-  if (hasCycle(currentClient)) await loadInvoice(currentClient, target);
+  body.innerHTML = `<div class="cm-nav"><strong>Factures ${currentYMLabel(cmTarget)} créées</strong></div>${report.join('')}
+    <div class="cm-foot"><button class="cm-go" onclick="closeCMModal()">Fermer</button></div>`;
+  if (hasCycle(currentClient)) await loadInvoice(currentClient, cmTarget);
   else renderClients();
+  refreshBulkBtn();
 }
 
 function updateCycleZone() {
@@ -1840,6 +1946,7 @@ async function initLoad() {
     console.error('Erreur au chargement initial de la facture :', err);
   }
   updatePreview();
+  refreshBulkBtn();
 }
 initLoad();
 initMobileLayout();
@@ -1854,5 +1961,13 @@ document.getElementById('icalFilter')?.addEventListener('input', filterAndRender
 // auto-numéro au chargement si vide
 setTimeout(() => { if (!v('fNum')) genNumAuto(); }, 300);
 </script>
+<!-- ══ MODALE FACTURES CM DU MOIS SUIVANT ══ -->
+<div class="cm-modal" id="cmModal" onclick="if(event.target===this)closeCMModal()">
+  <div class="cm-box">
+    <div class="cm-title">⚡ Factures community management</div>
+    <div id="cmBody"></div>
+  </div>
+</div>
+
 </body>
 </html>
